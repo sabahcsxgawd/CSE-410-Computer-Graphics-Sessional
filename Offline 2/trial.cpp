@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -6,6 +7,7 @@
 #include <stack>
 
 #include "matrix.h"
+#include "point.h"
 
 using namespace std;
 
@@ -35,6 +37,7 @@ int main()
     double lY = lookY - eyeY;
     double lZ = lookZ - eyeZ;
     double l = sqrt(lX * lX + lY * lY + lZ * lZ);
+    assert(l != 0.0);
     lX /= l;
     lY /= l;
     lZ /= l;
@@ -43,6 +46,7 @@ int main()
     double rY = lZ * upX - lX * upZ;
     double rZ = lX * upY - lY * upX;
     double len_r = sqrt(rX * rX + rY * rY + rZ * rZ);
+    assert(len_r != 0.0);
     rX /= len_r;
     rY /= len_r;
     rZ /= len_r;
@@ -113,28 +117,40 @@ int main()
             matrix point1Transformed = M * point1;
             matrix point2Transformed = M * point2;
 
+            point point0TransformedPoint(point0Transformed.get(0, 0), point0Transformed.get(1, 0), point0Transformed.get(2, 0), point0Transformed.get(3, 0));
+            point point1TransformedPoint(point1Transformed.get(0, 0), point1Transformed.get(1, 0), point1Transformed.get(2, 0), point1Transformed.get(3, 0));
+            point point2TransformedPoint(point2Transformed.get(0, 0), point2Transformed.get(1, 0), point2Transformed.get(2, 0), point2Transformed.get(3, 0));
+
+            point0TransformedPoint.print(fout1, 7);
+            point1TransformedPoint.print(fout1, 7);
+            point2TransformedPoint.print(fout1, 7);
+
             matrix point0Viewed = V * point0Transformed;
             matrix point1Viewed = V * point1Transformed;
             matrix point2Viewed = V * point2Transformed;
 
+            point point0ViewedPoint(point0Viewed.get(0, 0), point0Viewed.get(1, 0), point0Viewed.get(2, 0), point0Viewed.get(3, 0));
+            point point1ViewedPoint(point1Viewed.get(0, 0), point1Viewed.get(1, 0), point1Viewed.get(2, 0), point1Viewed.get(3, 0));
+            point point2ViewedPoint(point2Viewed.get(0, 0), point2Viewed.get(1, 0), point2Viewed.get(2, 0), point2Viewed.get(3, 0));
+
+            point0ViewedPoint.print(fout2, 7);
+            point1ViewedPoint.print(fout2, 7);
+            point2ViewedPoint.print(fout2, 7);
+
             matrix point0Projected = P * point0Viewed;
             matrix point1Projected = P * point1Viewed;
             matrix point2Projected = P * point2Viewed;
-            point0Projected.divideByW();
-            point1Projected.divideByW();
-            point2Projected.divideByW();
-                        
-            fout1 << fixed << setprecision(7) << point0Transformed.get(0, 0) << " " << point0Transformed.get(1, 0) << " " << point0Transformed.get(2, 0) << " \n";
-            fout1 << fixed << setprecision(7) << point1Transformed.get(0, 0) << " " << point1Transformed.get(1, 0) << " " << point1Transformed.get(2, 0) << " \n";
-            fout1 << fixed << setprecision(7) << point2Transformed.get(0, 0) << " " << point2Transformed.get(1, 0) << " " << point2Transformed.get(2, 0) << " \n";
+            
+            point point0ProjectedPoint(point0Projected.get(0, 0), point0Projected.get(1, 0), point0Projected.get(2, 0), point0Projected.get(3, 0));
+            point point1ProjectedPoint(point1Projected.get(0, 0), point1Projected.get(1, 0), point1Projected.get(2, 0), point1Projected.get(3, 0));
+            point point2ProjectedPoint(point2Projected.get(0, 0), point2Projected.get(1, 0), point2Projected.get(2, 0), point2Projected.get(3, 0));
+            point0ProjectedPoint.divideByW();
+            point1ProjectedPoint.divideByW();
+            point2ProjectedPoint.divideByW();
 
-            fout2 << fixed << setprecision(7) << point0Viewed.get(0, 0) << " " << point0Viewed.get(1, 0) << " " << point0Viewed.get(2, 0) << " \n";
-            fout2 << fixed << setprecision(7) << point1Viewed.get(0, 0) << " " << point1Viewed.get(1, 0) << " " << point1Viewed.get(2, 0) << " \n";
-            fout2 << fixed << setprecision(7) << point2Viewed.get(0, 0) << " " << point2Viewed.get(1, 0) << " " << point2Viewed.get(2, 0) << " \n";
-
-            fout3 << fixed << setprecision(7) << point0Projected.get(0, 0) << " " << point0Projected.get(1, 0) << " " << point0Projected.get(2, 0) << " \n";
-            fout3 << fixed << setprecision(7) << point1Projected.get(0, 0) << " " << point1Projected.get(1, 0) << " " << point1Projected.get(2, 0) << " \n";
-            fout3 << fixed << setprecision(7) << point2Projected.get(0, 0) << " " << point2Projected.get(1, 0) << " " << point2Projected.get(2, 0) << " \n";
+            point0ProjectedPoint.print(fout3, 7);
+            point1ProjectedPoint.print(fout3, 7);
+            point2ProjectedPoint.print(fout3, 7);                    
 
             fout1 << '\n';
             fout2 << '\n';
@@ -180,3 +196,5 @@ int main()
 
     return 0;
 }
+
+// TODO: Check the DO's and DON'Ts of the assignment

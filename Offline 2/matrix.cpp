@@ -1,7 +1,9 @@
-#include "matrix.h"
 #include <iostream>
 #include <cassert>
 #include <cmath>
+
+#include "matrix.h"
+#include "point.h"
 
 matrix::matrix(int rows, int cols) {
     this->rows = rows;
@@ -130,25 +132,30 @@ matrix makeScalingMatrix(double sx, double sy, double sz) {
 matrix makeRotationMatrix(double angle, double ax, double ay, double az) {
     matrix result(4, 4);
 
-    angle *= M_PI / 180.0;
     double c = cos(angle);
     double s = sin(angle);
     double t = 1.0 - c;
 
-    double len = sqrt(ax * ax + ay * ay + az * az);
-    ax /= len;
-    ay /= len;
-    az /= len;
+    point axis(ax, ay, az, 1.0);
+    axis.normalize();
 
-    result.data[0][0] = t * ax * ax + c;
-    result.data[0][1] = t * ax * ay - s * az;
-    result.data[0][2] = t * ax * az + s * ay;
-    result.data[1][0] = t * ax * ay + s * az;
-    result.data[1][1] = t * ay * ay + c;
-    result.data[1][2] = t * ay * az - s * ax;
-    result.data[2][0] = t * ax * az - s * ay;
-    result.data[2][1] = t * ay * az + s * ax;
-    result.data[2][2] = t * az * az + c;
+    point I(1.0, 0.0, 0.0, 1.0);
+    point J(0.0, 1.0, 0.0, 1.0);
+    point K(0.0, 0.0, 1.0, 1.0);
+
+    point c1 = rotateRodrigues(I, axis, angle);
+    point c2 = rotateRodrigues(J, axis, angle);
+    point c3 = rotateRodrigues(K, axis, angle);
+
+    result.data[0][0] = c1.getX();
+    result.data[0][1] = c2.getX();
+    result.data[0][2] = c3.getX();
+    result.data[1][0] = c1.getY();
+    result.data[1][1] = c2.getY();
+    result.data[1][2] = c3.getY();
+    result.data[2][0] = c1.getZ();
+    result.data[2][1] = c2.getZ();
+    result.data[2][2] = c3.getZ();
 
     return result;
 }

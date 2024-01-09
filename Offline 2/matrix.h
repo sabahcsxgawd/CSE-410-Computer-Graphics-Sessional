@@ -24,7 +24,6 @@ public:
 
 };
 
-
 matrix makeTranslationMatrix(double tx, double ty, double tz);
 matrix makeScalingMatrix(double sx, double sy, double sz);
 matrix makeRotationMatrix(double angle, double ax, double ay, double az);
