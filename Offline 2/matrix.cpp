@@ -79,6 +79,16 @@ void matrix::set(int row, int col, double value) {
     this->data[row][col] = value;
 }
 
+void matrix::divideByW() {
+    assert(this->rows == 4 && this->cols == 1 && this->data[3][0] != 0.0);
+
+    for (int i = 0; i < this->cols; i++) {
+        this->data[0][0] /= this->data[3][0];
+        this->data[1][0] /= this->data[3][0];
+        this->data[2][0] /= this->data[3][0];
+        this->data[3][0] /= this->data[3][0];
+    }
+}
 
 matrix matrix::operator*(const matrix& other) {
     assert(this->cols == other.rows);
@@ -129,7 +139,7 @@ matrix makeRotationMatrix(double angle, double ax, double ay, double az) {
     ax /= len;
     ay /= len;
     az /= len;
-    
+
     result.data[0][0] = t * ax * ax + c;
     result.data[0][1] = t * ax * ay - s * az;
     result.data[0][2] = t * ax * az + s * ay;

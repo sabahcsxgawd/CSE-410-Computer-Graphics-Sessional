@@ -15,8 +15,9 @@ int main()
     ifstream fin("scene.txt");
     ofstream fout1("stage1.txt");
     ofstream fout2("stage2.txt");
+    ofstream fout3("stage3.txt");
 
-    matrix M = matrix(4, 4), T = matrix(4, 4), R = matrix(4, 4);
+    matrix M = matrix(4, 4), T = matrix(4, 4), R = matrix(4, 4), P = matrix(4, 4);
 
     stack<matrix> transformations;
 
@@ -66,6 +67,16 @@ int main()
 
     matrix V = R * T;
 
+    double fovX = fovY * aspectRatio;
+    double t = near * tan(fovY * M_PI / 360.0);
+    double r1 = near * tan(fovX * M_PI / 360.0); // r already used in right vector of camera :'(
+
+    P.set(0, 0, near / r1);
+    P.set(1, 1, near / t);
+    P.set(2, 2, -(far + near) / (far - near));
+    P.set(2, 3, -(2.0 * far * near) / (far - near));
+    P.set(3, 2, -1.0);
+
     string line;
 
     while (true)
@@ -104,7 +115,14 @@ int main()
 
             matrix point0Viewed = V * point0Transformed;
             matrix point1Viewed = V * point1Transformed;
-            matrix point2Viewed = V * point2Transformed;            
+            matrix point2Viewed = V * point2Transformed;
+
+            matrix point0Projected = P * point0Viewed;
+            matrix point1Projected = P * point1Viewed;
+            matrix point2Projected = P * point2Viewed;
+            point0Projected.divideByW();
+            point1Projected.divideByW();
+            point2Projected.divideByW();
                         
             fout1 << fixed << setprecision(7) << point0Transformed.get(0, 0) << " " << point0Transformed.get(1, 0) << " " << point0Transformed.get(2, 0) << " \n";
             fout1 << fixed << setprecision(7) << point1Transformed.get(0, 0) << " " << point1Transformed.get(1, 0) << " " << point1Transformed.get(2, 0) << " \n";
@@ -114,8 +132,13 @@ int main()
             fout2 << fixed << setprecision(7) << point1Viewed.get(0, 0) << " " << point1Viewed.get(1, 0) << " " << point1Viewed.get(2, 0) << " \n";
             fout2 << fixed << setprecision(7) << point2Viewed.get(0, 0) << " " << point2Viewed.get(1, 0) << " " << point2Viewed.get(2, 0) << " \n";
 
+            fout3 << fixed << setprecision(7) << point0Projected.get(0, 0) << " " << point0Projected.get(1, 0) << " " << point0Projected.get(2, 0) << " \n";
+            fout3 << fixed << setprecision(7) << point1Projected.get(0, 0) << " " << point1Projected.get(1, 0) << " " << point1Projected.get(2, 0) << " \n";
+            fout3 << fixed << setprecision(7) << point2Projected.get(0, 0) << " " << point2Projected.get(1, 0) << " " << point2Projected.get(2, 0) << " \n";
+
             fout1 << '\n';
             fout2 << '\n';
+            fout3 << '\n';
         }
         if (line == "translate")
         {
@@ -153,6 +176,7 @@ int main()
     fin.close();
     fout1.close();
     fout2.close();
+    fout3.close();
 
     return 0;
 }

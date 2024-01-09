@@ -16,6 +16,7 @@ public:
 
     double get(int row, int col);
     void set(int row, int col, double value);
+    void divideByW();
 
     matrix operator*(const matrix& other);
 
