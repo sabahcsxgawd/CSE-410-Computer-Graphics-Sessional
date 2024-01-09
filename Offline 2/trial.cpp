@@ -42,10 +42,10 @@ int main()
     double rX = lY * upZ - lZ * upY;
     double rY = lZ * upX - lX * upZ;
     double rZ = lX * upY - lY * upX;
-    double r = sqrt(rX * rX + rY * rY + rZ * rZ);
-    rX /= r;
-    rY /= r;
-    rZ /= r;
+    double len_r = sqrt(rX * rX + rY * rY + rZ * rZ);
+    rX /= len_r;
+    rY /= len_r;
+    rZ /= len_r;
 
     double uX = rY * lZ - rZ * lY;
     double uY = rZ * lX - rX * lZ;
@@ -69,9 +69,9 @@ int main()
 
     double fovX = fovY * aspectRatio;
     double t = near * tan(fovY * M_PI / 360.0);
-    double r1 = near * tan(fovX * M_PI / 360.0); // r already used in right vector of camera :'(
+    double r = near * tan(fovX * M_PI / 360.0);
 
-    P.set(0, 0, near / r1);
+    P.set(0, 0, near / r);
     P.set(1, 1, near / t);
     P.set(2, 2, -(far + near) / (far - near));
     P.set(2, 3, -(2.0 * far * near) / (far - near));
