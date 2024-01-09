@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -12,9 +13,10 @@ int main()
 {
 
     ifstream fin("scene.txt");
-    ofstream fout("stage1.txt");
+    ofstream fout1("stage1.txt");
+    ofstream fout2("stage2.txt");
 
-    matrix M = matrix(4, 4);
+    matrix M = matrix(4, 4), T = matrix(4, 4), R = matrix(4, 4);
 
     stack<matrix> transformations;
 
@@ -27,6 +29,42 @@ int main()
     fin >> lookX >> lookY >> lookZ;
     fin >> upX >> upY >> upZ;
     fin >> fovY >> aspectRatio >> near >> far;
+
+    double lX = lookX - eyeX;
+    double lY = lookY - eyeY;
+    double lZ = lookZ - eyeZ;
+    double l = sqrt(lX * lX + lY * lY + lZ * lZ);
+    lX /= l;
+    lY /= l;
+    lZ /= l;
+
+    double rX = lY * upZ - lZ * upY;
+    double rY = lZ * upX - lX * upZ;
+    double rZ = lX * upY - lY * upX;
+    double r = sqrt(rX * rX + rY * rY + rZ * rZ);
+    rX /= r;
+    rY /= r;
+    rZ /= r;
+
+    double uX = rY * lZ - rZ * lY;
+    double uY = rZ * lX - rX * lZ;
+    double uZ = rX * lY - rY * lX;
+
+    T.set(0, 3, -eyeX);
+    T.set(1, 3, -eyeY);
+    T.set(2, 3, -eyeZ);
+
+    R.set(0, 0, rX);
+    R.set(0, 1, rY);
+    R.set(0, 2, rZ);
+    R.set(1, 0, uX);
+    R.set(1, 1, uY);
+    R.set(1, 2, uZ);
+    R.set(2, 0, -lX);
+    R.set(2, 1, -lY);
+    R.set(2, 2, -lZ);
+
+    matrix V = R * T;
 
     string line;
 
@@ -63,11 +101,21 @@ int main()
             matrix point0Transformed = M * point0;
             matrix point1Transformed = M * point1;
             matrix point2Transformed = M * point2;
+
+            matrix point0Viewed = V * point0Transformed;
+            matrix point1Viewed = V * point1Transformed;
+            matrix point2Viewed = V * point2Transformed;            
                         
-            fout << fixed << setprecision(7) << point0Transformed.get(0, 0) << " " << point0Transformed.get(1, 0) << " " << point0Transformed.get(2, 0) << " \n";
-            fout << fixed << setprecision(7) << point1Transformed.get(0, 0) << " " << point1Transformed.get(1, 0) << " " << point1Transformed.get(2, 0) << " \n";
-            fout << fixed << setprecision(7) << point2Transformed.get(0, 0) << " " << point2Transformed.get(1, 0) << " " << point2Transformed.get(2, 0) << " \n";
-            fout << '\n';
+            fout1 << fixed << setprecision(7) << point0Transformed.get(0, 0) << " " << point0Transformed.get(1, 0) << " " << point0Transformed.get(2, 0) << " \n";
+            fout1 << fixed << setprecision(7) << point1Transformed.get(0, 0) << " " << point1Transformed.get(1, 0) << " " << point1Transformed.get(2, 0) << " \n";
+            fout1 << fixed << setprecision(7) << point2Transformed.get(0, 0) << " " << point2Transformed.get(1, 0) << " " << point2Transformed.get(2, 0) << " \n";
+
+            fout2 << fixed << setprecision(7) << point0Viewed.get(0, 0) << " " << point0Viewed.get(1, 0) << " " << point0Viewed.get(2, 0) << " \n";
+            fout2 << fixed << setprecision(7) << point1Viewed.get(0, 0) << " " << point1Viewed.get(1, 0) << " " << point1Viewed.get(2, 0) << " \n";
+            fout2 << fixed << setprecision(7) << point2Viewed.get(0, 0) << " " << point2Viewed.get(1, 0) << " " << point2Viewed.get(2, 0) << " \n";
+
+            fout1 << '\n';
+            fout2 << '\n';
         }
         if (line == "translate")
         {
@@ -103,6 +151,8 @@ int main()
     }
 
     fin.close();
-    fout.close();
+    fout1.close();
+    fout2.close();
+
     return 0;
 }

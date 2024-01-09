@@ -129,19 +129,7 @@ matrix makeRotationMatrix(double angle, double ax, double ay, double az) {
     ax /= len;
     ay /= len;
     az /= len;
-
-    // according to `http://www.songho.ca/opengl/gl_rotate.html`
-    // result.data[0][0] = t * ax * ax + c;
-    // result.data[0][1] = t * ax * ay + s * az;
-    // result.data[0][2] = t * ax * az - s * ay;
-    // result.data[1][0] = t * ax * ay - s * az;
-    // result.data[1][1] = t * ay * ay + c;
-    // result.data[1][2] = t * ay * az + s * ax;
-    // result.data[2][0] = t * ax * az + s * ay;
-    // result.data[2][1] = t * ay * az - s * ax;
-    // result.data[2][2] = t * az * az + c;
-
-    // works according IO of sir
+    
     result.data[0][0] = t * ax * ax + c;
     result.data[0][1] = t * ax * ay - s * az;
     result.data[0][2] = t * ax * az + s * ay;
