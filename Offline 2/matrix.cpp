@@ -81,16 +81,6 @@ void matrix::set(int row, int col, double value) {
     this->data[row][col] = value;
 }
 
-void matrix::divideByW() {
-    assert(this->rows == 4 && this->cols == 1 && this->data[3][0] != 0.0);
-
-    for (int i = 0; i < this->cols; i++) {
-        this->data[0][0] /= this->data[3][0];
-        this->data[1][0] /= this->data[3][0];
-        this->data[2][0] /= this->data[3][0];
-        this->data[3][0] /= this->data[3][0];
-    }
-}
 
 matrix matrix::operator*(const matrix& other) {
     assert(this->cols == other.rows);
