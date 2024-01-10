@@ -80,6 +80,7 @@ int main()
     P.set(2, 2, -(far + near) / (far - near));
     P.set(2, 3, -(2.0 * far * near) / (far - near));
     P.set(3, 2, -1.0);
+    P.set(3, 3, 0.0);
 
     string line;
 
