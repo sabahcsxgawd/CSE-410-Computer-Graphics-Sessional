@@ -8,6 +8,9 @@
 
 #include "matrix.h"
 #include "point.h"
+#include "triangle.h"
+#include "bitmap_image.hpp"
+
 
 using namespace std;
 
@@ -22,6 +25,7 @@ int main()
     matrix M = matrix(4, 4), T = matrix(4, 4), R = matrix(4, 4), P = matrix(4, 4);
 
     stack<matrix> transformations;
+    vector<Triangle> triangles;
 
     double eyeX, eyeY, eyeZ;
     double lookX, lookY, lookZ;
@@ -151,7 +155,9 @@ int main()
 
             point0ProjectedPoint.print(fout3, 7);
             point1ProjectedPoint.print(fout3, 7);
-            point2ProjectedPoint.print(fout3, 7);                    
+            point2ProjectedPoint.print(fout3, 7);
+
+            triangles.emplace_back(point0ProjectedPoint, point1ProjectedPoint, point2ProjectedPoint);                  
 
             fout1 << '\n';
             fout2 << '\n';
