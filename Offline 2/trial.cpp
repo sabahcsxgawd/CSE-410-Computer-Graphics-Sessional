@@ -202,6 +202,7 @@ int main()
     fout3.close();
 
     fin.open("config.txt");
+    ofstream fout4("z_buffer.txt");
 
     int screenWidth, screenHeight;
     fin >> screenWidth >> screenHeight;
@@ -226,6 +227,25 @@ int main()
     bitmap_image image(screenWidth, screenHeight);
     image.set_all_channels(0, 0, 0);
 
+    for(Triangle t : triangles) {
+        double maxY = min(t.getPoint(0).getY(), topLimit);
+        double minY = max(t.getPoint(2).getY(), bottomLimit);
+        
+        for(double y = maxY; y >= minY; y -= dy) {
+            
+        }
+    }
+
+    image.save_image("out.bmp");
+
+    for(int i = 0; i < screenHeight; i++) {
+        for(int j = 0; j < screenWidth; j++) {
+            if(zBuffer[i][j] < zMax) {
+                fout4 << fixed << setprecision(6) << zBuffer[i][j] << '\t';
+            }
+        }
+    }
+
     for (int i = 0; i < screenHeight; i++)
     {
         delete[] zBuffer[i];
@@ -234,6 +254,7 @@ int main()
     delete[] zBuffer;
 
     fin.close();
+    fout4.close();
 
     return 0;
 }

@@ -15,6 +15,24 @@ Triangle::Triangle(point p1, point p2, point p3) {
     points[1] = p2;
     points[2] = p3;
 
+    if(points[0].getY() < points[1].getY()) {
+        point temp = points[0];
+        points[0] = points[1];
+        points[1] = temp;
+    }
+
+    if(points[0].getY() < points[2].getY()) {
+        point temp = points[0];
+        points[0] = points[2];
+        points[2] = temp;
+    }
+
+    if(points[1].getY() < points[2].getY()) {
+        point temp = points[1];
+        points[1] = points[2];
+        points[2] = temp;
+    }
+
     color[0] = genRand() % 256;
     color[1] = genRand() % 256;
     color[2] = genRand() % 256;
