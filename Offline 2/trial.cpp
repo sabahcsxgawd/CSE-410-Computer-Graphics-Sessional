@@ -201,6 +201,40 @@ int main()
     fout2.close();
     fout3.close();
 
+    fin.open("config.txt");
+
+    int screenWidth, screenHeight;
+    fin >> screenWidth >> screenHeight;
+
+    double leftLimit = -1.0, rightLimit = 1.0, bottomLimit = -1.0, topLimit = 1.0, zMin = -1.0, zMax = 1.0;
+
+    double dx = (rightLimit - leftLimit) / screenWidth;
+    double dy = (topLimit - bottomLimit) / screenHeight;
+    double topY = topLimit - dy / 2.0;
+    double leftX = leftLimit + dx / 2.0;
+
+    double **zBuffer = new double *[screenHeight];
+    for (int i = 0; i < screenHeight; i++)
+    {
+        zBuffer[i] = new double[screenWidth];
+        for (int j = 0; j < screenWidth; j++)
+        {
+            zBuffer[i][j] = zMax;
+        }
+    }
+
+    bitmap_image image(screenWidth, screenHeight);
+    image.set_all_channels(0, 0, 0);
+
+    for (int i = 0; i < screenHeight; i++)
+    {
+        delete[] zBuffer[i];
+    }
+
+    delete[] zBuffer;
+
+    fin.close();
+
     return 0;
 }
 

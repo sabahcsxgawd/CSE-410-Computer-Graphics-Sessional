@@ -1,2 +1,2 @@
-g++ -fsanitize=address trial.cpp matrix.cpp point.cpp triangle.cpp -o trial
+g++ -fsanitize=address point.cpp matrix.cpp triangle.cpp trial.cpp -o trial
 ./trial
