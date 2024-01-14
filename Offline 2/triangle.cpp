@@ -20,21 +20,15 @@ Triangle::Triangle(point& p0, point& p1, point& p2) {
     rgb[2] = genRand() % 256;
 
     if(points[0].getY() < points[1].getY()) {
-        point temp = points[0];
-        points[0] = points[1];
-        points[1] = temp;
+        std::swap(points[0], points[1]);
     }
 
     if(points[0].getY() < points[2].getY()) {
-        point temp = points[0];
-        points[0] = points[2];
-        points[2] = temp;
+        std::swap(points[0], points[2]);
     }
 
     if(points[1].getY() < points[2].getY()) {
-        point temp = points[1];
-        points[1] = points[2];
-        points[2] = temp;
+        std::swap(points[1], points[2]);
     }
 }
 

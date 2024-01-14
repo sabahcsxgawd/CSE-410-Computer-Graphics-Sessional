@@ -14,7 +14,7 @@
 
 using namespace std;
 
-#define EQ(x, y) (fabs((x) - (y)) < 1e-9)
+#define EQ(x, y) (fabs((x) - (y)) < __DBL_EPSILON__)
 
 int main()
 {
@@ -209,12 +209,18 @@ int main()
     int screenWidth, screenHeight;
     fin >> screenWidth >> screenHeight;
 
-    double leftLimit = -1.0, rightLimit = 1.0, bottomLimit = -1.0, topLimit = 1.0, zMin = -1.0, zMax = 1.0;
+    double leftLimit = -1.0, rightLimit = 1.0;
+    double bottomLimit = -1.0, topLimit = 1.0;
+    double zMin = -1.0, zMax = 1.0;
 
     double dx = (rightLimit - leftLimit) / screenWidth;
     double dy = (topLimit - bottomLimit) / screenHeight;
+
     double topY = topLimit - dy / 2.0;
+    double bottomY = bottomLimit + dy / 2.0;
+
     double leftX = leftLimit + dx / 2.0;
+    double rightX = rightLimit - dx / 2.0;
 
     double **zBuffer = new double *[screenHeight];
     for (int i = 0; i < screenHeight; i++)
@@ -230,17 +236,20 @@ int main()
     image.set_all_channels(0, 0, 0);
 
     for(Triangle t : triangles) {
-        double maxY = min(t.getPoint(0).getY(), topLimit);
-        double minY = max(t.getPoint(2).getY(), bottomLimit);
-        
-        int topScanLine = (topY - maxY) / dy;
-        int bottomScanLine = (topY - minY) / dy;
+        double maxY = min(t.getPoint(0).getY(), topY);
+        double minY = max(t.getPoint(2).getY(), bottomY);
+
+        double minX = max(min(t.getPoint(0).getX(), min(t.getPoint(1).getX(), t.getPoint(2).getX())), leftX);
+        double maxX = min(max(t.getPoint(0).getX(), max(t.getPoint(1).getX(), t.getPoint(2).getX())), rightX);
+                
+        int topScanLine = round((topY - maxY) / dy);
+        int bottomScanLine = round((topY - minY) / dy);
 
         for(int i = topScanLine; i <= bottomScanLine; i++) {
             double y = topY - i * dy;
             double xLeft, xRight, zLeft, zRight;
 
-            if(EQ(t.getPoint(0).getY(), t.getPoint(2).getY())) {
+            if(EQ(t.getPoint(0).getY(), t.getPoint(2).getY())) {            
                 xLeft = min(t.getPoint(0).getX(), t.getPoint(2).getX());
                 xRight = max(t.getPoint(0).getX(), t.getPoint(2).getX());
                 zLeft = min(t.getPoint(0).getZ(), t.getPoint(2).getZ());
@@ -268,20 +277,22 @@ int main()
                     swap(zLeft, zRight);
                 }
             }
+            
+            xLeft = max(xLeft, minX);
+            xRight = min(xRight, maxX);
+    
+            int leftIntersectingColumn = round((xLeft - leftX) / dx);
+            int rightIntersectingColumn = round((xRight - leftX) / dx);
 
-            xLeft = max(xLeft, leftLimit);
-            xRight = min(xRight, rightLimit);
+            if(!EQ(xLeft, xRight)) {        
+                for(int j = leftIntersectingColumn; j <= rightIntersectingColumn; j++) {                
+                    double x = leftX + j * dx;
+                    double z = zRight - (zRight - zLeft) * (xRight - x) / (xRight - xLeft);
 
-            int leftIntersectingColumn = (xLeft - leftX) / dx;
-            int rightIntersectingColumn = (xRight - leftX) / dx;
-
-            for(int j = leftIntersectingColumn; j <= rightIntersectingColumn; j++) {
-                double x = leftX + j * dx;
-                double z = zRight - (zRight - zLeft) * (xRight - x) / (xRight - xLeft);
-
-                if(z < zBuffer[i][j] && z > zMin) {
-                    zBuffer[i][j] = z;
-                    image.set_pixel(j, i, t.getColor(0), t.getColor(1), t.getColor(2));                    
+                    if(z < zBuffer[i][j] && z > zMin) {
+                        zBuffer[i][j] = z;
+                        image.set_pixel(j, i, t.getColor(0), t.getColor(1), t.getColor(2));                    
+                    }
                 }
             }
         }
