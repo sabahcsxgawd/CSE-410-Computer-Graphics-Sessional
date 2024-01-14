@@ -10,7 +10,6 @@ public:
     point();
     point(double x, double y, double z, double w);
 
-
     double getX();
     double getY();
     double getZ();

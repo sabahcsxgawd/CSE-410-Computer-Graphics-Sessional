@@ -7,15 +7,13 @@ class Triangle {
 
 private:
     point points[3];
-    double color[3];
+    int rgb[3];
 
 public:
-    Triangle(point, point, point);
-    Triangle(const Triangle&);
-    Triangle& operator=(const Triangle&);
+    Triangle(point&, point&, point&);
 
     point getPoint(int);
-    double getColor(int);
+    int getColor(int);
 };
 
 #endif // TRIANGLE_H

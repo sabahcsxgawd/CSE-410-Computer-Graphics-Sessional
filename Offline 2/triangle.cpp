@@ -10,10 +10,14 @@ inline int genRand()
     return (g_seed >> 16) & 0x7FFF;
 }
 
-Triangle::Triangle(point p1, point p2, point p3) {
-    points[0] = p1;
-    points[1] = p2;
-    points[2] = p3;
+Triangle::Triangle(point& p0, point& p1, point& p2) {
+    points[0] = p0;
+    points[1] = p1;
+    points[2] = p2;
+
+    rgb[0] = genRand() % 256;
+    rgb[1] = genRand() % 256;
+    rgb[2] = genRand() % 256;
 
     if(points[0].getY() < points[1].getY()) {
         point temp = points[0];
@@ -31,24 +35,9 @@ Triangle::Triangle(point p1, point p2, point p3) {
         point temp = points[1];
         points[1] = points[2];
         points[2] = temp;
-    }
+    }    
 
-    color[0] = genRand() % 256;
-    color[1] = genRand() % 256;
-    color[2] = genRand() % 256;
-}
-
-Triangle::Triangle(const Triangle& other) {
-    points[0] = other.points[0];
-    points[1] = other.points[1];
-    points[2] = other.points[2];
-}
-
-Triangle& Triangle::operator=(const Triangle& other) {
-    points[0] = other.points[0];
-    points[1] = other.points[1];
-    points[2] = other.points[2];
-    return *this;
+    // std::cout << rgb[0] << " " << rgb[1] << " " << rgb[2] << std::endl;
 }
 
 point Triangle::getPoint(int index) {
@@ -56,7 +45,7 @@ point Triangle::getPoint(int index) {
     return points[index];
 }
 
-double Triangle::getColor(int index) {
-    assert(index >= 0 && index < 3 && color[index] >= 0.0 && color[index] < 256.0);
-    return color[index];
+int Triangle::getColor(int index) {
+    assert(index >= 0 && index < 3 && rgb[index] >= 0 && rgb[index] < 256);
+    return rgb[index];
 }

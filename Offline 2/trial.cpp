@@ -14,6 +14,8 @@
 
 using namespace std;
 
+#define EQ(x, y) (fabs((x) - (y)) < 1e-9)
+
 int main()
 {
 
@@ -231,8 +233,62 @@ int main()
         double maxY = min(t.getPoint(0).getY(), topLimit);
         double minY = max(t.getPoint(2).getY(), bottomLimit);
         
-        for(double y = maxY; y >= minY; y -= dy) {
-            
+        int topScanLine = (topY - maxY) / dy;
+        int bottomScanLine = (topY - minY) / dy;
+
+        for(int i = topScanLine; i <= bottomScanLine; i++) {
+        // for(double y = minY; y <= maxY; y += dy) {
+            double y = topY - i * dy;
+            double xLeft, xRight, zLeft, zRight;
+
+            if(EQ(t.getPoint(0).getY(), t.getPoint(2).getY())) {
+                xLeft = min(t.getPoint(0).getX(), t.getPoint(2).getX());
+                xRight = max(t.getPoint(0).getX(), t.getPoint(2).getX());
+                zLeft = min(t.getPoint(0).getZ(), t.getPoint(2).getZ());
+                zRight = max(t.getPoint(0).getZ(), t.getPoint(2).getZ());
+            }
+            else {
+                point p0 = t.getPoint(0);
+                point p1 = t.getPoint(1);
+                point p2 = t.getPoint(2);
+
+                xLeft = p0.getX() + (p2.getX() - p0.getX()) * (y - p0.getY()) / (p2.getY() - p0.getY());
+                zLeft = p0.getZ() + (p2.getZ() - p0.getZ()) * (y - p0.getY()) / (p2.getY() - p0.getY());
+
+                if(EQ(p0.getY(), p1.getY())) {
+                    xRight = p1.getX() + (p2.getX() - p1.getX()) * (y - p1.getY()) / (p2.getY() - p1.getY());
+                    zRight = p1.getZ() + (p2.getZ() - p1.getZ()) * (y - p1.getY()) / (p2.getY() - p1.getY());
+                }
+                else {
+                    xRight = p0.getX() + (p1.getX() - p0.getX()) * (y - p0.getY()) / (p1.getY() - p0.getY());
+                    zRight = p0.getZ() + (p1.getZ() - p0.getZ()) * (y - p0.getY()) / (p1.getY() - p0.getY());
+                }
+
+                if(xLeft > xRight) {
+                    swap(xLeft, xRight);
+                    swap(zLeft, zRight);
+                }
+            }
+
+            xLeft = max(xLeft, leftLimit);
+            xRight = min(xRight, rightLimit);
+
+            int leftIntersectingColumn = (xLeft - leftX) / dx;
+            int rightIntersectingColumn = (xRight - leftX) / dx;
+
+            for(int j = leftIntersectingColumn; j <= rightIntersectingColumn; j++) {
+            // for(double x = xLeft; x <= xRight; x += dx) {
+                double x = leftX + j * dx;
+                double z = zRight - (zRight - zLeft) * (xRight - x) / (xRight - xLeft);
+
+                // int i = (topY - y) / dy;
+                // int j = (x - leftX) / dx;        
+
+                if(z < zBuffer[i][j] && z > zMin) {
+                    zBuffer[i][j] = z;
+                    image.set_pixel(j, i, t.getColor(0), t.getColor(1), t.getColor(2));                    
+                }
+            }
         }
     }
 
@@ -244,6 +300,7 @@ int main()
                 fout4 << fixed << setprecision(6) << zBuffer[i][j] << '\t';
             }
         }
+        fout4 << '\n';
     }
 
     for (int i = 0; i < screenHeight; i++)
