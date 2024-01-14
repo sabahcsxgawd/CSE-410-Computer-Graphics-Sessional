@@ -236,8 +236,8 @@ int main()
     image.set_all_channels(0, 0, 0);
 
     for(Triangle t : triangles) {
-        double maxY = min(t.getPoint(0).getY(), topY);
-        double minY = max(t.getPoint(2).getY(), bottomY);
+        double minY = max(min(t.getPoint(0).getY(), min(t.getPoint(1).getY(), t.getPoint(2).getY())), bottomY);
+        double maxY = min(max(t.getPoint(0).getY(), max(t.getPoint(1).getY(), t.getPoint(2).getY())), topY);
 
         double minX = max(min(t.getPoint(0).getX(), min(t.getPoint(1).getX(), t.getPoint(2).getX())), leftX);
         double maxX = min(max(t.getPoint(0).getX(), max(t.getPoint(1).getX(), t.getPoint(2).getX())), rightX);
