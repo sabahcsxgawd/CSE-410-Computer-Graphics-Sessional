@@ -237,7 +237,6 @@ int main()
         int bottomScanLine = (topY - minY) / dy;
 
         for(int i = topScanLine; i <= bottomScanLine; i++) {
-        // for(double y = minY; y <= maxY; y += dy) {
             double y = topY - i * dy;
             double xLeft, xRight, zLeft, zRight;
 
@@ -277,12 +276,8 @@ int main()
             int rightIntersectingColumn = (xRight - leftX) / dx;
 
             for(int j = leftIntersectingColumn; j <= rightIntersectingColumn; j++) {
-            // for(double x = xLeft; x <= xRight; x += dx) {
                 double x = leftX + j * dx;
                 double z = zRight - (zRight - zLeft) * (xRight - x) / (xRight - xLeft);
-
-                // int i = (topY - y) / dy;
-                // int j = (x - leftX) / dx;        
 
                 if(z < zBuffer[i][j] && z > zMin) {
                     zBuffer[i][j] = z;

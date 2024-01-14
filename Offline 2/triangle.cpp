@@ -35,9 +35,7 @@ Triangle::Triangle(point& p0, point& p1, point& p2) {
         point temp = points[1];
         points[1] = points[2];
         points[2] = temp;
-    }    
-
-    // std::cout << rgb[0] << " " << rgb[1] << " " << rgb[2] << std::endl;
+    }
 }
 
 point Triangle::getPoint(int index) {
