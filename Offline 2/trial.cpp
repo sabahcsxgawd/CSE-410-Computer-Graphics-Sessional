@@ -11,15 +11,15 @@
 #include "triangle.h"
 #include "bitmap_image.hpp"
 
-
 using namespace std;
 
 #define EQ(x, y) (fabs((x) - (y)) < __DBL_EPSILON__)
 
-int main()
+int main(int argc, char** argv)
 {
-
-    ifstream fin("scene.txt");
+    assert(argc == 3 && argv[1] == string("scene.txt") && argv[2] == string("config.txt"));
+    
+    ifstream fin(argv[1]);
     ofstream fout1("stage1.txt");
     ofstream fout2("stage2.txt");
     ofstream fout3("stage3.txt");
@@ -128,9 +128,9 @@ int main()
             point point1TransformedPoint(point1Transformed.get(0, 0), point1Transformed.get(1, 0), point1Transformed.get(2, 0), point1Transformed.get(3, 0));
             point point2TransformedPoint(point2Transformed.get(0, 0), point2Transformed.get(1, 0), point2Transformed.get(2, 0), point2Transformed.get(3, 0));
 
-            point0TransformedPoint.print(fout1, 7);
-            point1TransformedPoint.print(fout1, 7);
-            point2TransformedPoint.print(fout1, 7);
+            fout1 << point0TransformedPoint << '\n';
+            fout1 << point1TransformedPoint << '\n';
+            fout1 << point2TransformedPoint << '\n';
 
             matrix point0Viewed = V * point0Transformed;
             matrix point1Viewed = V * point1Transformed;
@@ -140,14 +140,14 @@ int main()
             point point1ViewedPoint(point1Viewed.get(0, 0), point1Viewed.get(1, 0), point1Viewed.get(2, 0), point1Viewed.get(3, 0));
             point point2ViewedPoint(point2Viewed.get(0, 0), point2Viewed.get(1, 0), point2Viewed.get(2, 0), point2Viewed.get(3, 0));
 
-            point0ViewedPoint.print(fout2, 7);
-            point1ViewedPoint.print(fout2, 7);
-            point2ViewedPoint.print(fout2, 7);
+            fout2 << point0ViewedPoint << '\n';
+            fout2 << point1ViewedPoint << '\n';
+            fout2 << point2ViewedPoint << '\n';
 
             matrix point0Projected = P * point0Viewed;
             matrix point1Projected = P * point1Viewed;
             matrix point2Projected = P * point2Viewed;
-            
+
             point point0ProjectedPoint(point0Projected.get(0, 0), point0Projected.get(1, 0), point0Projected.get(2, 0), point0Projected.get(3, 0));
             point point1ProjectedPoint(point1Projected.get(0, 0), point1Projected.get(1, 0), point1Projected.get(2, 0), point1Projected.get(3, 0));
             point point2ProjectedPoint(point2Projected.get(0, 0), point2Projected.get(1, 0), point2Projected.get(2, 0), point2Projected.get(3, 0));
@@ -155,11 +155,11 @@ int main()
             point1ProjectedPoint.divideByW();
             point2ProjectedPoint.divideByW();
 
-            point0ProjectedPoint.print(fout3, 7);
-            point1ProjectedPoint.print(fout3, 7);
-            point2ProjectedPoint.print(fout3, 7);
+            fout3 << point0ProjectedPoint << '\n';
+            fout3 << point1ProjectedPoint << '\n';
+            fout3 << point2ProjectedPoint << '\n';
 
-            triangles.emplace_back(point0ProjectedPoint, point1ProjectedPoint, point2ProjectedPoint);                  
+            triangles.emplace_back(point0ProjectedPoint, point1ProjectedPoint, point2ProjectedPoint);
 
             fout1 << '\n';
             fout2 << '\n';
@@ -203,7 +203,7 @@ int main()
     fout2.close();
     fout3.close();
 
-    fin.open("config.txt");
+    fin.open(argv[2]);
     ofstream fout4("z_buffer.txt");
 
     int screenWidth, screenHeight;
@@ -235,74 +235,111 @@ int main()
     bitmap_image image(screenWidth, screenHeight);
     image.set_all_channels(0, 0, 0);
 
-    for(Triangle t : triangles) {
-        double minY = max(min(t.getPoint(0).getY(), min(t.getPoint(1).getY(), t.getPoint(2).getY())), bottomY);
-        double maxY = min(max(t.getPoint(0).getY(), max(t.getPoint(1).getY(), t.getPoint(2).getY())), topY);
+    for (Triangle t : triangles)
+    {
+        double minY = max(bottomY, t.getMinYPoint().getY());
+        double maxY = min(topY, t.getMaxYPoint().getY());
 
-        double minX = max(min(t.getPoint(0).getX(), min(t.getPoint(1).getX(), t.getPoint(2).getX())), leftX);
-        double maxX = min(max(t.getPoint(0).getX(), max(t.getPoint(1).getX(), t.getPoint(2).getX())), rightX);
-                
-        int topScanLine = round((topY - maxY) / dy);
-        int bottomScanLine = round((topY - minY) / dy);
+        int topScanLine = ceil((topY - maxY) / dy);
+        int bottomScanLine = floor((topY - minY) / dy);
 
-        for(int i = topScanLine; i <= bottomScanLine; i++) {
+        for (int i = topScanLine; i <= bottomScanLine; i++)
+        {
             double y = topY - i * dy;
-            double xLeft, xRight, zLeft, zRight;
+            double xa, xb, za, zb;
 
-            if(EQ(t.getPoint(0).getY(), t.getPoint(2).getY())) {            
-                xLeft = min(t.getPoint(0).getX(), t.getPoint(2).getX());
-                xRight = max(t.getPoint(0).getX(), t.getPoint(2).getX());
-                zLeft = min(t.getPoint(0).getZ(), t.getPoint(2).getZ());
-                zRight = max(t.getPoint(0).getZ(), t.getPoint(2).getZ());
+            // also we can check topScanLine == bottomScanLine
+            if (EQ(t.getMinYPoint().getY(), t.getMaxYPoint().getY()))
+            {
+                xa = t.getMinXPoint().getX();
+                za = t.getMinXPoint().getZ();
+                xb = t.getMaxXPoint().getX();
+                zb = t.getMaxXPoint().getZ();        
             }
-            else {
+            else
+            {
                 point p0 = t.getPoint(0);
                 point p1 = t.getPoint(1);
                 point p2 = t.getPoint(2);
 
-                xLeft = p0.getX() + (p2.getX() - p0.getX()) * (y - p0.getY()) / (p2.getY() - p0.getY());
-                zLeft = p0.getZ() + (p2.getZ() - p0.getZ()) * (y - p0.getY()) / (p2.getY() - p0.getY());
-
-                if(EQ(p0.getY(), p1.getY())) {
-                    xRight = p1.getX() + (p2.getX() - p1.getX()) * (y - p1.getY()) / (p2.getY() - p1.getY());
-                    zRight = p1.getZ() + (p2.getZ() - p1.getZ()) * (y - p1.getY()) / (p2.getY() - p1.getY());
+                if (min(p0.getY(), p1.getY()) < y && y < max(p0.getY(), p1.getY()))
+                {
+                    xa = p0.getX() + (p1.getX() - p0.getX()) * (y - p0.getY()) / (p1.getY() - p0.getY());
+                    za = p0.getZ() + (p1.getZ() - p0.getZ()) * (y - p0.getY()) / (p1.getY() - p0.getY());
+                    goto L1;
                 }
-                else {
-                    xRight = p0.getX() + (p1.getX() - p0.getX()) * (y - p0.getY()) / (p1.getY() - p0.getY());
-                    zRight = p0.getZ() + (p1.getZ() - p0.getZ()) * (y - p0.getY()) / (p1.getY() - p0.getY());
+                else if (min(p1.getY(), p2.getY()) < y && y < max(p1.getY(), p2.getY()))
+                {
+                    xa = p1.getX() + (p2.getX() - p1.getX()) * (y - p1.getY()) / (p2.getY() - p1.getY());
+                    za = p1.getZ() + (p2.getZ() - p1.getZ()) * (y - p1.getY()) / (p2.getY() - p1.getY());
+                    goto L1;
+                }
+                else
+                {
+                    xa = p0.getX() + (p2.getX() - p0.getX()) * (y - p0.getY()) / (p2.getY() - p0.getY());
+                    za = p0.getZ() + (p2.getZ() - p0.getZ()) * (y - p0.getY()) / (p2.getY() - p0.getY());
+                }
+            L1:
+                if (min(p0.getY(), p2.getY()) < y && y < max(p0.getY(), p2.getY()))
+                {
+                    xb = p0.getX() + (p2.getX() - p0.getX()) * (y - p0.getY()) / (p2.getY() - p0.getY());
+                    zb = p0.getZ() + (p2.getZ() - p0.getZ()) * (y - p0.getY()) / (p2.getY() - p0.getY());
+                    goto L2;
+                }
+                else if (min(p1.getY(), p2.getY()) < y && y < max(p1.getY(), p2.getY()))
+                {
+                    xb = p1.getX() + (p2.getX() - p1.getX()) * (y - p1.getY()) / (p2.getY() - p1.getY());
+                    zb = p1.getZ() + (p2.getZ() - p1.getZ()) * (y - p1.getY()) / (p2.getY() - p1.getY());
+                    goto L2;
+                }
+                else
+                {
+                    xb = p0.getX() + (p1.getX() - p0.getX()) * (y - p0.getY()) / (p1.getY() - p0.getY());
+                    zb = p0.getZ() + (p1.getZ() - p0.getZ()) * (y - p0.getY()) / (p1.getY() - p0.getY());
+                }
+            L2:
+                if (xa > xb)
+                {
+                    swap(xa, xb);
+                    swap(za, zb);
                 }
 
-                if(xLeft > xRight) {
-                    swap(xLeft, xRight);
-                    swap(zLeft, zRight);
-                }
-            }
-            
-            xLeft = max(xLeft, minX);
-            xRight = min(xRight, maxX);
-    
-            int leftIntersectingColumn = round((xLeft - leftX) / dx);
-            int rightIntersectingColumn = round((xRight - leftX) / dx);
+                double minX = max(leftX, xa);
+                double maxX = min(rightX, xb);
 
-            if(!EQ(xLeft, xRight)) {        
-                for(int j = leftIntersectingColumn; j <= rightIntersectingColumn; j++) {                
+                int leftIntersectingColumn = round((minX - leftX) / dx);
+                int rightIntersectingColumn = round((maxX - leftX) / dx);
+
+                if (EQ(xa, xb))
+                {
+                    goto L3;
+                }
+
+                for (int j = leftIntersectingColumn; j <= rightIntersectingColumn; j++)
+                {
                     double x = leftX + j * dx;
-                    double z = zRight - (zRight - zLeft) * (xRight - x) / (xRight - xLeft);
+                    double z = za + (zb - za) * (x - xa) / (xb - xa);
 
-                    if(z < zBuffer[i][j] && z > zMin) {
+                    if (zMin < z && z < zBuffer[i][j])
+                    {
                         zBuffer[i][j] = z;
-                        image.set_pixel(j, i, t.getColor(0), t.getColor(1), t.getColor(2));                    
+                        image.set_pixel(j, i, t.getColor(0), t.getColor(1), t.getColor(2));
                     }
                 }
+            L3:
+                continue;
             }
         }
     }
 
     image.save_image("out.bmp");
 
-    for(int i = 0; i < screenHeight; i++) {
-        for(int j = 0; j < screenWidth; j++) {
-            if(zBuffer[i][j] < zMax) {
+    for (int i = 0; i < screenHeight; i++)
+    {
+        for (int j = 0; j < screenWidth; j++)
+        {
+            if (zBuffer[i][j] < zMax)
+            {
                 fout4 << fixed << setprecision(6) << zBuffer[i][j] << '\t';
             }
         }

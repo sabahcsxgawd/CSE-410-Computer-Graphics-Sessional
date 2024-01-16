@@ -9,6 +9,8 @@ private:
 public:
     point();
     point(double x, double y, double z, double w);
+    point(const point& other);
+    point& operator=(const point& other);
 
     double getX();
     double getY();
@@ -35,7 +37,7 @@ public:
     // cross product
     point operator^(const point& other);
 
-    void print(std::ofstream &, int);
+    friend std::ostream& operator<<(std::ostream&, const point&);
 
 };
 

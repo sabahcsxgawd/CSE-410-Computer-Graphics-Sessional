@@ -11,9 +11,16 @@ private:
 
 public:
     Triangle(point&, point&, point&);
+    Triangle(const Triangle&);
+    Triangle& operator=(const Triangle&);
 
     point getPoint(int);
     int getColor(int);
+
+    point getMinYPoint();
+    point getMaxYPoint();
+    point getMinXPoint();
+    point getMaxXPoint();
 };
 
 #endif // TRIANGLE_H

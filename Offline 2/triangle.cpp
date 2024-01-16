@@ -17,19 +17,29 @@ Triangle::Triangle(point& p0, point& p1, point& p2) {
 
     rgb[0] = genRand() % 256;
     rgb[1] = genRand() % 256;
-    rgb[2] = genRand() % 256;
+    rgb[2] = genRand() % 256;    
+}
 
-    if(points[0].getY() < points[1].getY()) {
-        std::swap(points[0], points[1]);
-    }
+Triangle::Triangle(const Triangle& other) {
+    points[0] = other.points[0];
+    points[1] = other.points[1];
+    points[2] = other.points[2];
 
-    if(points[0].getY() < points[2].getY()) {
-        std::swap(points[0], points[2]);
-    }
+    rgb[0] = other.rgb[0];
+    rgb[1] = other.rgb[1];
+    rgb[2] = other.rgb[2];
+}
 
-    if(points[1].getY() < points[2].getY()) {
-        std::swap(points[1], points[2]);
-    }
+Triangle& Triangle::operator=(const Triangle& other) {
+    points[0] = other.points[0];
+    points[1] = other.points[1];
+    points[2] = other.points[2];
+
+    rgb[0] = other.rgb[0];
+    rgb[1] = other.rgb[1];
+    rgb[2] = other.rgb[2];
+
+    return *this;
 }
 
 point Triangle::getPoint(int index) {
@@ -40,4 +50,44 @@ point Triangle::getPoint(int index) {
 int Triangle::getColor(int index) {
     assert(index >= 0 && index < 3 && rgb[index] >= 0 && rgb[index] < 256);
     return rgb[index];
+}
+
+point Triangle::getMinYPoint() {
+    point min = points[0];
+    for (int i = 1; i < 3; i++) {
+        if (points[i].getY() < min.getY()) {
+            min = points[i];
+        }
+    }
+    return min;
+}
+
+point Triangle::getMaxYPoint() {
+    point max = points[0];
+    for (int i = 1; i < 3; i++) {
+        if (points[i].getY() > max.getY()) {
+            max = points[i];
+        }
+    }
+    return max;
+}
+
+point Triangle::getMinXPoint() {
+    point min = points[0];
+    for (int i = 1; i < 3; i++) {
+        if (points[i].getX() < min.getX()) {
+            min = points[i];
+        }
+    }
+    return min;
+}
+
+point Triangle::getMaxXPoint() {
+    point max = points[0];
+    for (int i = 1; i < 3; i++) {
+        if (points[i].getX() > max.getX()) {
+            max = points[i];
+        }
+    }
+    return max;
 }

@@ -6,6 +6,7 @@
 
 #include "point.h"
 
+
 point::point() {
     this->x = 0.0;
     this->y = 0.0;
@@ -18,6 +19,22 @@ point::point(double x, double y, double z, double w) {
     this->y = y;
     this->z = z;
     this->w = w;
+}
+
+point::point(const point& other) {
+    this->x = other.x;
+    this->y = other.y;
+    this->z = other.z;
+    this->w = other.w;
+}
+
+point& point::operator=(const point& other) {
+    this->x = other.x;
+    this->y = other.y;
+    this->z = other.z;
+    this->w = other.w;
+
+    return *this;
 }
 
 double point::getX() {
@@ -100,8 +117,9 @@ point point::operator^(const point& other) {
     return point(x, y, z, w);
 }
 
-void point::print(std::ofstream& fout, int precision) {
-    fout << std::fixed << std::setprecision(precision) << this->x << " " << this->y << " " << this->z << " \n";
+std::ostream& operator<<(std::ostream& os, const point& p) {
+    os << std::fixed << std::setprecision(7) << p.x << " " << p.y << " " << p.z << ' ';
+    return os;
 }
 
 point rotateRodrigues(point &x, point &axis, double angle) {
