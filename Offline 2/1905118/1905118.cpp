@@ -6,10 +6,10 @@
 #include <string>
 #include <stack>
 
+#include "bitmap_image.hpp"
 #include "matrix.h"
 #include "point.h"
 #include "triangle.h"
-#include "bitmap_image.hpp"
 
 using namespace std;
 
@@ -248,7 +248,7 @@ int main(int argc, char** argv)
             double y = topY - i * dy;
             double xa, xb, za, zb;
 
-            // also we can check topScanLine == bottomScanLine
+            // also we can check topScanLine == bottomScanLine???
             if (EQ(t.getMinYPoint().getY(), t.getMaxYPoint().getY()))
             {
                 xa = t.getMinXPoint().getX();
