@@ -87,6 +87,7 @@ void point::normalize() {
 }
 
 point point::operator+(const point& other) {
+    assert(this->w == 1.0 && other.w == 1.0);
     double x = this->x + other.x;
     double y = this->y + other.y;
     double z = this->z + other.z;
@@ -96,6 +97,7 @@ point point::operator+(const point& other) {
 }
 
 point point::operator*(double scalar) {
+    assert(this->w == 1.0);
     double x = this->x * scalar;
     double y = this->y * scalar;
     double z = this->z * scalar;
@@ -105,10 +107,12 @@ point point::operator*(double scalar) {
 }
 
 double point::operator*(const point& other) {
+    assert(this->w == 1.0 && other.w == 1.0);
     return this->x * other.x + this->y * other.y + this->z * other.z;
 }
 
 point point::operator^(const point& other) {
+    assert(this->w == 1.0 && other.w == 1.0);
     double x = this->y * other.z - this->z * other.y;
     double y = this->z * other.x - this->x * other.z;
     double z = this->x * other.y - this->y * other.x;

@@ -78,6 +78,7 @@ int main(int argc, char** argv)
     matrix V = R * T;
 
     double fovX = fovY * aspectRatio;
+    // check for n*M_PI/2.0 ???
     double t = near * tan(fovY * M_PI / 360.0);
     double r = near * tan(fovX * M_PI / 360.0);
 
@@ -248,7 +249,6 @@ int main(int argc, char** argv)
             double y = topY - i * dy;
             double xa, xb, za, zb;
 
-            // also we can check topScanLine == bottomScanLine???
             if (EQ(t.getMinYPoint().getY(), t.getMaxYPoint().getY()))
             {
                 xa = t.getMinXPoint().getX();
@@ -266,38 +266,34 @@ int main(int argc, char** argv)
                 {
                     xa = p0.getX() + (p1.getX() - p0.getX()) * (y - p0.getY()) / (p1.getY() - p0.getY());
                     za = p0.getZ() + (p1.getZ() - p0.getZ()) * (y - p0.getY()) / (p1.getY() - p0.getY());
-                    goto L1;
                 }
                 else if (min(p1.getY(), p2.getY()) < y && y < max(p1.getY(), p2.getY()))
                 {
                     xa = p1.getX() + (p2.getX() - p1.getX()) * (y - p1.getY()) / (p2.getY() - p1.getY());
                     za = p1.getZ() + (p2.getZ() - p1.getZ()) * (y - p1.getY()) / (p2.getY() - p1.getY());
-                    goto L1;
                 }
                 else
                 {
                     xa = p0.getX() + (p2.getX() - p0.getX()) * (y - p0.getY()) / (p2.getY() - p0.getY());
                     za = p0.getZ() + (p2.getZ() - p0.getZ()) * (y - p0.getY()) / (p2.getY() - p0.getY());
                 }
-            L1:
+
                 if (min(p0.getY(), p2.getY()) < y && y < max(p0.getY(), p2.getY()))
                 {
                     xb = p0.getX() + (p2.getX() - p0.getX()) * (y - p0.getY()) / (p2.getY() - p0.getY());
                     zb = p0.getZ() + (p2.getZ() - p0.getZ()) * (y - p0.getY()) / (p2.getY() - p0.getY());
-                    goto L2;
                 }
                 else if (min(p1.getY(), p2.getY()) < y && y < max(p1.getY(), p2.getY()))
                 {
                     xb = p1.getX() + (p2.getX() - p1.getX()) * (y - p1.getY()) / (p2.getY() - p1.getY());
                     zb = p1.getZ() + (p2.getZ() - p1.getZ()) * (y - p1.getY()) / (p2.getY() - p1.getY());
-                    goto L2;
                 }
                 else
                 {
                     xb = p0.getX() + (p1.getX() - p0.getX()) * (y - p0.getY()) / (p1.getY() - p0.getY());
                     zb = p0.getZ() + (p1.getZ() - p0.getZ()) * (y - p0.getY()) / (p1.getY() - p0.getY());
                 }
-            L2:
+
                 if (xa > xb)
                 {
                     swap(xa, xb);
@@ -312,7 +308,7 @@ int main(int argc, char** argv)
 
                 if (EQ(xa, xb))
                 {
-                    goto L3;
+                    continue;
                 }
 
                 for (int j = leftIntersectingColumn; j <= rightIntersectingColumn; j++)
@@ -325,9 +321,7 @@ int main(int argc, char** argv)
                         zBuffer[i][j] = z;
                         image.set_pixel(j, i, t.getColor(0), t.getColor(1), t.getColor(2));
                     }
-                }
-            L3:
-                continue;
+                }        
             }
         }
     }
