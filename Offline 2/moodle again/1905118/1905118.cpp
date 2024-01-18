@@ -306,8 +306,29 @@ int main(int argc, char** argv)
                 int leftIntersectingColumn = round((minX - leftX) / dx);
                 int rightIntersectingColumn = round((maxX - leftX) / dx);
 
-                if (EQ(xa, xb))
+                if(EQ(xa, xb) && (leftIntersectingColumn == rightIntersectingColumn))
                 {
+                    if(za > zb)
+                    {
+                        swap(za, zb);
+                    }
+
+                    int j = leftIntersectingColumn;
+
+                    if(((za < zMin) || EQ(za, zMin)) && zMin < zb) {
+                        zBuffer[i][j] = zMin + 2.0 * __DBL_EPSILON__;
+                        image.set_pixel(j, i, t.getColor(0), t.getColor(1), t.getColor(2));
+                    }
+
+                    else if(zMin < za && za < zBuffer[i][j] && zMin < zb) {
+                        zBuffer[i][j] = za;
+                        image.set_pixel(j, i, t.getColor(0), t.getColor(1), t.getColor(2));
+                    }
+
+                    continue;
+                }
+
+                if(EQ(xa, xb) && (leftIntersectingColumn < rightIntersectingColumn)) {
                     continue;
                 }
 
@@ -353,4 +374,8 @@ int main(int argc, char** argv)
     return 0;
 }
 
-// TODO: Check the DO's and DON'Ts of the assignment
+/*
+TODO: Check the DO's and DON'Ts of the assignment
+
+
+*/
