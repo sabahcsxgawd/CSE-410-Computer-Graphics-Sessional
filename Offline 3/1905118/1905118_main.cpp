@@ -2,6 +2,11 @@
 
 using namespace std;
 
+double fovy = 80.0f;
+double aspect = 1.0f;
+double zNear = 0.01f;
+double zFar = 1000.0f;
+
 Vector3D cameraEye(200.0f, -200.0f, 200.0f);
 Vector3D cameraCenter(0.0f, 0.0f, 0.0f);
 Vector3D cameraUp(0.0f, 0.0f, 1.0f);
@@ -10,12 +15,14 @@ Vector3D f(0.0f, 0.0f, 0.0f);
 Vector3D s(0.0f, 0.0f, 0.0f);
 Vector3D u(0.0f, 0.0f, 0.0f);
 
-int recursionLevel;
-int screenWidth, screenHeight;
+int recursionLevel, imageCount;
+int screenWidth, screenHeight, imageWidth, imageHeight;
 
 vector<Object *> objects;
 vector<PointLight> pointLights;
 vector<SpotLight> spotLights;
+
+bitmap_image image;
 
 void loadData()
 {
@@ -29,6 +36,8 @@ void loadData()
     fin >> recursionLevel;
     fin >> screenWidth;
     screenHeight = screenWidth;
+    imageWidth = screenWidth;
+    imageHeight = screenHeight;
 
     Object *temp;
     int numObjects;
@@ -124,6 +133,60 @@ void loadData()
     fin.close();
 }
 
+void capture()
+{
+    imageCount++;
+    image.setwidth_height(imageWidth, imageHeight, true);
+
+    double planeDistance = (screenWidth / 2.0) / tan((fovy / 2.0) * M_PI / 180.0);
+    Vector3D windowTopLeft = cameraEye + f * planeDistance - s * (screenWidth / 2.0) + u * (screenHeight / 2.0);
+
+    double du = screenWidth / imageWidth;
+    double dv = screenHeight / imageHeight;
+    double dummyColor[3] = {0.0, 0.0, 0.0};
+
+    Vector3D topLeft = windowTopLeft + s * (du / 2.0) - u * (dv / 2.0);
+
+    for (int i = 0; i < imageWidth; i++)
+    {
+        for (int j = 0; j < imageHeight; j++)
+        {
+            Vector3D currPixel = topLeft + s * i * du - u * j * dv;
+            Ray ray(cameraEye, (currPixel - cameraEye).normalize());
+
+            double tMin = DBL_MAX;
+            Object *nearestObject = nullptr;
+
+            for (Object *object : objects)
+            {
+                double t = object->intersect(ray, dummyColor, 0);
+                if (t > 0 && t < tMin)
+                {
+                    tMin = t;
+                    nearestObject = object;
+                }
+            }
+
+            if (nearestObject != nullptr)
+            {
+                double *color = new double[3];
+                tMin = nearestObject->intersect(ray, color, 1);
+
+                color[0] = max(0.0, min(1.0, color[0]));
+                color[1] = max(0.0, min(1.0, color[1]));
+                color[2] = max(0.0, min(1.0, color[2]));
+
+                image.set_pixel(i, j, color[0] * 255, color[1] * 255, color[2] * 255);
+
+                delete[] color;
+            }
+        }
+    }
+
+    string imageName = "Output1" + to_string(imageCount) + ".bmp";
+    image.save_image(imageName);
+}
+
 void updateCameraFSU()
 {
     f = (cameraCenter - cameraEye).normalize();
@@ -154,6 +217,12 @@ void initGL()
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClearDepth(1.0f);
     glEnable(GL_DEPTH_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(fovy, aspect, zNear, zFar);
+    glMatrixMode(GL_MODELVIEW);
+
     updateCameraFSU();
 }
 
@@ -198,6 +267,9 @@ void keyboardHandler(unsigned char key, int x, int y)
     GLfloat cameraRotationChangeAngle = 0.8f * M_PI / 180.0f;
     switch (key)
     {
+    case '0':
+        capture();
+        break;
     case '1':
         cameraCenter = cameraEye + f.rotateAroundAxis(cameraRotationChangeAngle, u).normalize();
         break;

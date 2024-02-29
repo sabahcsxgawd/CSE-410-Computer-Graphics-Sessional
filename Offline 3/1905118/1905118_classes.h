@@ -4,6 +4,17 @@
 #include <GL/glut.h>
 #include "bitmap_image.hpp"
 
+#define EPSILON std::numeric_limits<double>::epsilon()
+
+extern bitmap_image image;
+extern int recursionLevel;
+extern vector<Object *> objects;
+extern vector<PointLight> pointLights;
+extern vector<SpotLight> spotLights;
+
+double whiteColor[] = {1, 1, 1};
+double blackColor[] = {0, 0, 0};
+
 using namespace std;
 
 class Vector3D
@@ -51,6 +62,11 @@ public:
     Vector3D operator-(const Vector3D &v)
     {
         return Vector3D(x - v.x, y - v.y, z - v.z);
+    }
+
+    Vector3D operator+(double s)
+    {
+        return Vector3D(x + s, y + s, z + s);
     }
 
     Vector3D operator*(double s)
@@ -110,36 +126,11 @@ class Ray
 {
 public:
     Vector3D start, dir;
-    Ray(Vector3D &start, Vector3D &dir)
+    Ray(const Vector3D &start, const Vector3D &dir)
     {
         this->start = start;
-        this->dir = dir.normalize();
-    }
-};
-
-class Color
-{
-public:
-    double r, g, b;
-    Color()
-    {
-        r = 0;
-        g = 0;
-        b = 0;
-    }
-    Color(double r, double g, double b)
-    {
-        this->r = r;
-        this->g = g;
-        this->b = b;
-    }
-    Color operator*(double s)
-    {
-        return Color(r * s, g * s, b * s);
-    }
-    Color operator+(Color &c)
-    {
-        return Color(r + c.r, g + c.g, b + c.b);
+        this->dir = dir;
+        this->dir.normalize();
     }
 };
 
@@ -183,13 +174,159 @@ public:
     double color[3];
     double coEfficients[4];
 
+    virtual void setShine(int shine)
+    {
+        this->shine = shine;
+    };
+
+    virtual void setColor(double *color)
+    {
+        copy(color, color + 3, this->color);
+    };
+
+    virtual void setCoEfficients(double *coEfficients)
+    {
+        copy(coEfficients, coEfficients + 4, this->coEfficients);
+    };
+
+    virtual double *getColor(Vector3D &point)
+    {
+        return this->color;
+    }
+
+    virtual Ray getReflectedRay(const Ray &incidentRay, const Vector3D &intersectionPoint)
+    {
+        Vector3D normal = this->getNormal(incidentRay, intersectionPoint);
+        Vector3D reflectedDir = (normal * (2 * normal.dot(incidentRay.dir))) * -1.0 + incidentRay.dir;
+        Vector3D reflectedStart = intersectionPoint;
+        reflectedStart = reflectedStart + reflectedDir * EPSILON * 2.0;
+        return Ray(reflectedStart, reflectedDir);
+    }
+
+    virtual double intersect(Ray &ray, double *color, int level)
+    {
+        double tMin = this->intersect(ray);
+        cout << "tMin: " << tMin << '\n';
+        if (level == 0 || tMin < 0.0)
+        {
+            return tMin;
+        }
+
+        Vector3D intersectionPoint = ray.start + ray.dir * tMin;
+        double *intersectionPointColor = this->getColor(intersectionPoint);
+        cout << "Intersection Point Color: " << intersectionPointColor[0] << " " << intersectionPointColor[1] << " " << intersectionPointColor[2] << '\n';
+
+        color[0] = intersectionPointColor[0] * this->coEfficients[0];
+        color[1] = intersectionPointColor[1] * this->coEfficients[0];
+        color[2] = intersectionPointColor[2] * this->coEfficients[0];
+
+        for (PointLight *pointLight : pointLights)
+        {
+            Vector3D originL = pointLight->position;
+            Vector3D directionL = (intersectionPoint - originL).normalize();
+            Ray L(originL, directionL);
+            bool isObscured = false;
+            for (Object *object : objects)
+            {
+                double t = object->intersect(L);
+                if (t >= 0 && t <= 1.0)
+                {
+                    isObscured = true;
+                    break;
+                }
+            }
+            if (!isObscured)
+            {
+                Vector3D normal = this->getNormal(L, intersectionPoint);
+                Vector3D directionV = (ray.start - intersectionPoint).normalize();
+                Ray reflectedRay = this->getReflectedRay(L, intersectionPoint);
+                double lambertValue = max(0.0, normal.dot(directionL) * -1.0);
+                double phongValue = pow(max(0.0, reflectedRay.dir.dot(directionV) * -1.0), this->shine);
+
+                color[0] += (pointLight->color[0] * lambertValue * this->coEfficients[1]) + (pointLight->color[0] * phongValue * this->coEfficients[2]);
+                color[1] += (pointLight->color[1] * lambertValue * this->coEfficients[1]) + (pointLight->color[1] * phongValue * this->coEfficients[2]);
+                color[2] += (pointLight->color[2] * lambertValue * this->coEfficients[1]) + (pointLight->color[2] * phongValue * this->coEfficients[2]);
+            }
+        }
+
+        for (SpotLight *spotLight : spotLights)
+        {
+            Vector3D originL = spotLight->position;
+            Vector3D directionL = (intersectionPoint - originL).normalize();
+            double cosBeta = directionL.dot(spotLight->direction);
+            double beta = acos(cosBeta) * 180.0 / M_PI;
+            if (beta > spotLight->cutOffAngle)
+            {
+                continue;
+            }
+            else
+            {
+                cosBeta = pow(cosBeta, 0.1); // TODO test with different power
+                spotLight->color[0] *= cosBeta;
+                spotLight->color[1] *= cosBeta;
+                spotLight->color[2] *= cosBeta;
+            }
+            Ray L(originL, directionL);
+            bool isObscured = false;
+            for (Object *object : objects)
+            {
+                double t = object->intersect(L);
+                if (t >= 0 && t <= 1.0)
+                {
+                    isObscured = true;
+                    break;
+                }
+            }
+            if (!isObscured)
+            {
+                Vector3D normal = this->getNormal(L, intersectionPoint);
+                Vector3D directionV = (ray.start - intersectionPoint).normalize();
+                Ray reflectedRay = this->getReflectedRay(L, intersectionPoint);
+                double lambertValue = max(0.0, normal.dot(directionL) * -1.0);
+                double phongValue = pow(max(0.0, reflectedRay.dir.dot(directionV) * -1.0), this->shine);
+
+                color[0] += (spotLight->color[0] * lambertValue * this->coEfficients[1]) + (spotLight->color[0] * phongValue * this->coEfficients[2]);
+                color[1] += (spotLight->color[1] * lambertValue * this->coEfficients[1]) + (spotLight->color[1] * phongValue * this->coEfficients[2]);
+                color[2] += (spotLight->color[2] * lambertValue * this->coEfficients[1]) + (spotLight->color[2] * phongValue * this->coEfficients[2]);
+            }
+        }
+
+        if (level >= recursionLevel)
+        {
+            return tMin;
+        }
+
+        Ray reflectedRay = this->getReflectedRay(ray, intersectionPoint);
+
+        tMin = DBL_MAX;
+        Object *nearestObject = nullptr;
+
+        for (Object *object : objects)
+        {
+            double t = object->intersect(reflectedRay);
+            if (t >= 0 && t < tMin)
+            {
+                tMin = t;
+                nearestObject = object;
+            }
+        }
+
+        if (nearestObject != nullptr)
+        {
+            double *colorReflected = new double[3];
+            tMin = nearestObject->intersect(reflectedRay, colorReflected, level + 1);
+            color[0] += colorReflected[0] * this->coEfficients[3];
+            color[1] += colorReflected[1] * this->coEfficients[3];
+            color[2] += colorReflected[2] * this->coEfficients[3];
+            delete[] colorReflected;
+        }
+
+        return tMin;
+    }
+
+    virtual double intersect(Ray &ray) = 0;
     virtual void draw() = 0;
-    virtual void setColor(double *color) = 0;
-    virtual void setShine(int shine) = 0;
-    virtual void setCoEfficients(double *coEfficients) = 0;
-    virtual double intersect(Ray &ray, double *color, int level = 0) = 0;
-    virtual Vector3D getNormal(Vector3D &point) = 0;
-    virtual Color getColor(Vector3D &point) = 0;
+    virtual Vector3D getNormal(const Ray &incidentRay, const Vector3D &point) = 0;
 };
 
 class Sphere : public Object
@@ -227,41 +364,100 @@ public:
         copy(coEfficients, coEfficients + 4, this->coEfficients);
     }
 
-    double intersect(Ray &ray, double *color, int level = 0)
+    Vector3D getNormal(const Ray &incidentRay, const Vector3D &point)
     {
-        Vector3D l = this->referencePoint - ray.start;
-        double tca = l.dot(ray.dir);
-        if (tca < 0)
-            return -1;
-        double d2 = l.dot(l) - tca * tca;
-        double radius2 = this->length * this->length;
-        if (d2 > radius2)
-            return -1;
-        double thc = sqrt(radius2 - d2);
-        double t0 = tca - thc;
-        double t1 = tca + thc;
-        if (t0 > t1)
-            swap(t0, t1);
-        if (t0 < 0)
+        return ((this->referencePoint * -1.0) + point).normalize();
+    }
+};
+
+class Triangle : public Object
+{
+private:
+    Vector3D a, b, c;
+
+public:
+    Triangle(const Vector3D &a, const Vector3D &b, const Vector3D &c)
+    {
+        this->a = a;
+        this->b = b;
+        this->c = c;
+    }
+
+    void draw()
+    {
+        glColor3f(color[0], color[1], color[2]);
+        glBegin(GL_TRIANGLES);
+        glVertex3f(a.x, a.y, a.z);
+        glVertex3f(b.x, b.y, b.z);
+        glVertex3f(c.x, c.y, c.z);
+        glEnd();
+    }
+
+    void setColor(double *color)
+    {
+        copy(color, color + 3, this->color);
+    }
+
+    void setShine(int shine)
+    {
+        this->shine = shine;
+    }
+
+    void setCoEfficients(double *coEfficients)
+    {
+        copy(coEfficients, coEfficients + 4, this->coEfficients);
+    }
+
+    Vector3D getNormal(const Ray &incidentRay, const Vector3D &point)
+    {
+        Vector3D normal = ((b - a).cross(c - a)).normalize();
+        if (normal.dot(incidentRay.dir) > 0.0)
         {
-            t0 = t1;
-            if (t0 < 0)
-                return -1;
+            normal = normal * -1.0;
         }
-        color[0] = this->color[0];
-        color[1] = this->color[1];
-        color[2] = this->color[2];
-        return t0;
+        return normal;
+    }
+};
+
+class General : public Object
+{
+private:
+    double A, B, C, D, E, F, G, H, I, J;
+
+public:
+    // Equation: F(x,y,z) = Ax2+By2+Cz2+Dxy+Exz+Fyz+Gx+Hy+Iz+J = 0
+    General(double A, double B, double C, double D, double E, double F, double G, double H, double I, double J,
+            const Vector3D &referencePoint, double length, double width, double height)
+    {
+        this->A = A;
+        this->B = B;
+        this->C = C;
+        this->D = D;
+        this->E = E;
+        this->F = F;
+        this->G = G;
+        this->H = H;
+        this->I = I;
+        this->J = J;
+
+        this->referencePoint = referencePoint;
+
+        this->length = length;
+        this->width = width;
+        this->height = height;
     }
 
-    Vector3D getNormal(Vector3D &point)
+    void draw()
     {
-        return (point - this->referencePoint).normalize();
+        // TODO
     }
 
-    Color getColor(Vector3D &point)
+    Vector3D getNormal(const Ray &incidentRay, const Vector3D &point) override
     {
-        return Color(this->color[0], this->color[1], this->color[2]);
+        double x = 2 * A * point.x + D * point.y + E * point.z + G;
+        double y = 2 * B * point.y + D * point.x + F * point.z + H;
+        double z = 2 * C * point.z + E * point.x + F * point.y + I;
+        return Vector3D(x, y, z).normalize();
     }
 };
 
@@ -317,212 +513,26 @@ public:
         copy(coEfficients, coEfficients + 4, this->coEfficients);
     }
 
-    double intersect(Ray &ray, double *color, int level = 0)
+    Vector3D getNormal(const Ray &incidentRay, const Vector3D &point)
     {
-        double t = -ray.start.z / ray.dir.z;
-        if (t > 0)
+        if (incidentRay.dir.z < 0.0)
         {
-            color[0] = this->color[0];
-            color[1] = this->color[1];
-            color[2] = this->color[2];
-            return t;
+            return Vector3D(0, 0, 1);
         }
-        return -1;
+        return Vector3D(0, 0, -1);
     }
 
-    Vector3D getNormal(Vector3D &point)
-    {
-        return Vector3D(0, 0, 1);
-    }
-
-    Color getColor(Vector3D &point)
+    double *getColor(Vector3D &point) override
     {
         int tileX = (point.x - this->referencePoint.x) / this->length;
         int tileY = (point.y - this->referencePoint.y) / this->length;
         if ((tileX + tileY) % 2 == 0)
         {
-            return Color(1, 1, 1);
+            return whiteColor;
         }
         else
         {
-            return Color(0, 0, 0);
+            return blackColor;
         }
-    }
-};
-
-class Triangle : public Object
-{
-private:
-    Vector3D a, b, c;
-
-public:
-    Triangle(const Vector3D &a, const Vector3D &b, const Vector3D &c)
-    {
-        this->a = a;
-        this->b = b;
-        this->c = c;
-    }
-
-    void draw()
-    {
-        glColor3f(color[0], color[1], color[2]);
-        glBegin(GL_TRIANGLES);
-        glVertex3f(a.x, a.y, a.z);
-        glVertex3f(b.x, b.y, b.z);
-        glVertex3f(c.x, c.y, c.z);
-        glEnd();
-    }
-
-    void setColor(double *color)
-    {
-        copy(color, color + 3, this->color);
-    }
-
-    void setShine(int shine)
-    {
-        this->shine = shine;
-    }
-
-    void setCoEfficients(double *coEfficients)
-    {
-        copy(coEfficients, coEfficients + 4, this->coEfficients);
-    }
-
-    double intersect(Ray &ray, double *color, int level = 0)
-    {
-        Vector3D e1 = b - a;
-        Vector3D e2 = c - a;
-        Vector3D h = ray.dir.cross(e2);
-        double a = e1.dot(h);
-        if (a > -0.00001 && a < 0.00001)
-            return -1;
-        double f = 1 / a;
-        Vector3D s = ray.start - this->a;
-        double u = f * s.dot(h);
-        if (u < 0.0 || u > 1.0)
-            return -1;
-        Vector3D q = s.cross(e1);
-        double v = f * ray.dir.dot(q);
-        if (v < 0.0 || u + v > 1.0)
-            return -1;
-        double t = f * e2.dot(q);
-        if (t > 0.00001)
-        {
-            color[0] = this->color[0];
-            color[1] = this->color[1];
-            color[2] = this->color[2];
-            return t;
-        }
-        return -1;
-    }
-
-    Vector3D getNormal(Vector3D &point)
-    {
-        return ((b - a).cross(c - a)).normalize();
-    }
-
-    Color getColor(Vector3D &point)
-    {
-        return Color(this->color[0], this->color[1], this->color[2]);
-    }
-};
-
-class General : public Object
-{
-private:
-    double A, B, C, D, E, F, G, H, I, J;
-
-public:
-    General(double A, double B, double C, double D, double E, double F, double G, double H, double I, double J,
-            const Vector3D &referencePoint, double length, double width, double height)
-    {
-        this->A = A;
-        this->B = B;
-        this->C = C;
-        this->D = D;
-        this->E = E;
-        this->F = F;
-        this->G = G;
-        this->H = H;
-        this->I = I;
-        this->J = J;
-
-        this->referencePoint = referencePoint;
-
-        this->length = length;
-        this->width = width;
-        this->height = height;
-    }
-
-    void draw()
-    {
-        // TODO
-    }
-
-    void setColor(double *color)
-    {
-        copy(color, color + 3, this->color);
-    }
-
-    void setShine(int shine)
-    {
-        this->shine = shine;
-    }
-
-    void setCoEfficients(double *coEfficients)
-    {
-        copy(coEfficients, coEfficients + 4, this->coEfficients);
-    }
-
-    double intersect(Ray &ray, double *color, int level = 0)
-    {
-        double a = A * ray.dir.x * ray.dir.x + B * ray.dir.y * ray.dir.y + C * ray.dir.z * ray.dir.z + D * ray.dir.x * ray.dir.y + E * ray.dir.y * ray.dir.z + F * ray.dir.z * ray.dir.x;
-        double b = 2 * (A * ray.start.x * ray.dir.x + B * ray.start.y * ray.dir.y + C * ray.start.z * ray.dir.z) + D * (ray.start.x * ray.dir.y + ray.start.y * ray.dir.x) + E * (ray.start.y * ray.dir.z + ray.start.z * ray.dir.y) + F * (ray.start.z * ray.dir.x + ray.start.x * ray.dir.z) + G * ray.dir.x + H * ray.dir.y + I * ray.dir.z;
-        double c = A * ray.start.x * ray.start.x + B * ray.start.y * ray.start.y + C * ray.start.z * ray.start.z + D * ray.start.x * ray.start.y + E * ray.start.y * ray.start.z + F * ray.start.z * ray.start.x + G * ray.start.x + H * ray.start.y + I * ray.start.z + J;
-        double d = b * b - 4 * a * c;
-        if (d < 0)
-            return -1;
-        double t1 = (-b + sqrt(d)) / (2 * a);
-        double t2 = (-b - sqrt(d)) / (2 * a);
-        if (t1 < 0 && t2 < 0)
-            return -1;
-        if (t1 < 0)
-        {
-            color[0] = this->color[0];
-            color[1] = this->color[1];
-            color[2] = this->color[2];
-            return t2;
-        }
-        if (t2 < 0)
-        {
-            color[0] = this->color[0];
-            color[1] = this->color[1];
-            color[2] = this->color[2];
-            return t1;
-        }
-        if (t1 < t2)
-        {
-            color[0] = this->color[0];
-            color[1] = this->color[1];
-            color[2] = this->color[2];
-            return t1;
-        }
-        color[0] = this->color[0];
-        color[1] = this->color[1];
-        color[2] = this->color[2];
-        return t2;
-    }
-
-    Vector3D getNormal(Vector3D &point)
-    {
-        double x = 2 * A * point.x + D * point.y + F * point.z + G;
-        double y = 2 * B * point.y + D * point.x + E * point.z + H;
-        double z = 2 * C * point.z + E * point.y + F * point.x + I;
-        return Vector3D(x, y, z).normalize();
-    }
-
-    Color getColor(Vector3D &point)
-    {
-        return Color(this->color[0], this->color[1], this->color[2]);
     }
 };
