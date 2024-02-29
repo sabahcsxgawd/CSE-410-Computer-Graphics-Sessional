@@ -4,13 +4,10 @@
 #include <GL/glut.h>
 #include "bitmap_image.hpp"
 
-#define EPSILON std::numeric_limits<double>::epsilon()
+#define EPSILON 1e-7
 
 extern bitmap_image image;
 extern int recursionLevel;
-extern vector<Object *> objects;
-extern vector<PointLight> pointLights;
-extern vector<SpotLight> spotLights;
 
 double whiteColor[] = {1, 1, 1};
 double blackColor[] = {0, 0, 0};
@@ -165,6 +162,11 @@ public:
     }
 };
 
+class Object;
+extern vector<Object *> objects;
+extern vector<PointLight> pointLights;
+extern vector<SpotLight> spotLights;
+
 class Object
 {
 public:
@@ -220,9 +222,9 @@ public:
         color[1] = intersectionPointColor[1] * this->coEfficients[0];
         color[2] = intersectionPointColor[2] * this->coEfficients[0];
 
-        for (PointLight *pointLight : pointLights)
+        for (PointLight pointLight : pointLights)
         {
-            Vector3D originL = pointLight->position;
+            Vector3D originL = pointLight.position;
             Vector3D directionL = (intersectionPoint - originL).normalize();
             Ray L(originL, directionL);
             bool isObscured = false;
@@ -243,28 +245,28 @@ public:
                 double lambertValue = max(0.0, normal.dot(directionL) * -1.0);
                 double phongValue = pow(max(0.0, reflectedRay.dir.dot(directionV) * -1.0), this->shine);
 
-                color[0] += (pointLight->color[0] * lambertValue * this->coEfficients[1]) + (pointLight->color[0] * phongValue * this->coEfficients[2]);
-                color[1] += (pointLight->color[1] * lambertValue * this->coEfficients[1]) + (pointLight->color[1] * phongValue * this->coEfficients[2]);
-                color[2] += (pointLight->color[2] * lambertValue * this->coEfficients[1]) + (pointLight->color[2] * phongValue * this->coEfficients[2]);
+                color[0] += (pointLight.color[0] * lambertValue * this->coEfficients[1]) + (pointLight.color[0] * phongValue * this->coEfficients[2]);
+                color[1] += (pointLight.color[1] * lambertValue * this->coEfficients[1]) + (pointLight.color[1] * phongValue * this->coEfficients[2]);
+                color[2] += (pointLight.color[2] * lambertValue * this->coEfficients[1]) + (pointLight.color[2] * phongValue * this->coEfficients[2]);
             }
         }
 
-        for (SpotLight *spotLight : spotLights)
+        for (SpotLight spotLight : spotLights)
         {
-            Vector3D originL = spotLight->position;
+            Vector3D originL = spotLight.position;
             Vector3D directionL = (intersectionPoint - originL).normalize();
-            double cosBeta = directionL.dot(spotLight->direction);
+            double cosBeta = directionL.dot(spotLight.direction);
             double beta = acos(cosBeta) * 180.0 / M_PI;
-            if (beta > spotLight->cutOffAngle)
+            if (beta > spotLight.cutOffAngle)
             {
                 continue;
             }
             else
             {
-                cosBeta = pow(cosBeta, 0.1); // TODO test with different power
-                spotLight->color[0] *= cosBeta;
-                spotLight->color[1] *= cosBeta;
-                spotLight->color[2] *= cosBeta;
+                cosBeta = pow(cosBeta, 20); // TODO test with different power
+                spotLight.color[0] *= cosBeta;
+                spotLight.color[1] *= cosBeta;
+                spotLight.color[2] *= cosBeta;
             }
             Ray L(originL, directionL);
             bool isObscured = false;
@@ -285,9 +287,9 @@ public:
                 double lambertValue = max(0.0, normal.dot(directionL) * -1.0);
                 double phongValue = pow(max(0.0, reflectedRay.dir.dot(directionV) * -1.0), this->shine);
 
-                color[0] += (spotLight->color[0] * lambertValue * this->coEfficients[1]) + (spotLight->color[0] * phongValue * this->coEfficients[2]);
-                color[1] += (spotLight->color[1] * lambertValue * this->coEfficients[1]) + (spotLight->color[1] * phongValue * this->coEfficients[2]);
-                color[2] += (spotLight->color[2] * lambertValue * this->coEfficients[1]) + (spotLight->color[2] * phongValue * this->coEfficients[2]);
+                color[0] += (spotLight.color[0] * lambertValue * this->coEfficients[1]) + (spotLight.color[0] * phongValue * this->coEfficients[2]);
+                color[1] += (spotLight.color[1] * lambertValue * this->coEfficients[1]) + (spotLight.color[1] * phongValue * this->coEfficients[2]);
+                color[2] += (spotLight.color[2] * lambertValue * this->coEfficients[1]) + (spotLight.color[2] * phongValue * this->coEfficients[2]);
             }
         }
 
@@ -368,6 +370,45 @@ public:
     {
         return ((this->referencePoint * -1.0) + point).normalize();
     }
+
+    double intersect(Ray &ray) override
+    {
+        Vector3D q = ray.start - this->referencePoint;
+        double b = 2.0 * (q.dot(ray.dir));
+        double c = q.dot(q) - this->length * this->length;
+        double D = b * b - 4 * c; // as a = 1 due to ray.dir.length() = 1
+
+        double t;
+
+        if (D < 0)
+        {
+            t = -1;
+        }
+        else if (D > 0)
+        {
+            double t1, t2;
+            D = sqrt(D);
+            t1 = (-b - D) / 2;
+            t2 = (-b + D) / 2;
+            if (t1 > 0)
+            {
+                t = t1;
+            }
+            else if (t2 > 0)
+            {
+                t = t2;
+            }
+            else
+            {
+                t = -1;
+            }
+        }
+        else
+        {
+            t = (-b + EPSILON) / 2;
+        }
+        return t;
+    }
 };
 
 class Triangle : public Object
@@ -417,6 +458,51 @@ public:
         }
         return normal;
     }
+
+    double getDeterminant(double mat[3][3])
+    {
+        double det = 0;
+        det = mat[0][0] * (mat[1][1] * mat[2][2] - mat[2][1] * mat[1][2]) - mat[0][1] * (mat[1][0] * mat[2][2] - mat[2][0] * mat[1][2]) + mat[0][2] * (mat[1][0] * mat[2][1] - mat[2][0] * mat[1][1]);
+        return det;
+    }
+
+    double intersect(Ray &ray) override
+    {
+        double matA[3][3] = {
+            
+        };
+
+        double detA = this->getDeterminant(matA);
+
+        assert(detA != 0.0);
+
+        double matBeta[3][3] = {
+
+        };
+
+        double beta = this->getDeterminant(matBeta) / detA;
+
+        double matGamma[3][3] = {
+
+        };
+
+        double gamma = this->getDeterminant(matGamma) / detA;
+
+        double matT[3][3] = {
+
+        };
+
+        double t = this->getDeterminant(matT) / detA;
+
+        if (beta + gamma < 1 && beta > 0 && gamma > 0 && t > 0)
+        {
+            return t;
+        }
+        else
+        {
+            return -1;
+        }
+    }
 };
 
 class General : public Object
@@ -458,6 +544,10 @@ public:
         double y = 2 * B * point.y + D * point.x + F * point.z + H;
         double z = 2 * C * point.z + E * point.x + F * point.y + I;
         return Vector3D(x, y, z).normalize();
+    }
+
+    double intersect(Ray &ray) override
+    {
     }
 };
 
@@ -534,5 +624,46 @@ public:
         {
             return blackColor;
         }
+    }
+
+    double intersect(Ray &ray) override
+    {
+        assert(ray.dir.length() != 0);
+
+        if (abs(ray.dir.z) < EPSILON)
+        {
+            // The ray is parallel to the floor, no intersection
+            return -1;
+        }
+
+        Vector3D normal = this->getNormal(ray, this->referencePoint);
+        double t = -(normal.dot(ray.start)) / (normal.dot(ray.dir));
+        if (t < 0.0)
+        {
+            t = -1;
+        }
+        else
+        {
+            // Compute intersection point
+            Vector3D intersectionPoint = ray.start + ray.dir * t;
+
+            // Check if the intersection point is within the floor boundaries
+            int tileCount = round(-this->referencePoint.x * 2 / this->length);
+            double minX = this->referencePoint.x;
+            double minY = this->referencePoint.y;
+            double maxX = minX + tileCount * this->length;
+            double maxY = minY + tileCount * this->length;
+
+            if (intersectionPoint.x >= minX && intersectionPoint.x <= maxX &&
+                intersectionPoint.y >= minY && intersectionPoint.y <= maxY)
+            {
+                return t;
+            }
+            else
+            {
+                t = -1;
+            }
+        }
+        return t;
     }
 };

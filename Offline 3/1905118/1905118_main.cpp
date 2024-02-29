@@ -7,7 +7,7 @@ double aspect = 1.0f;
 double zNear = 0.01f;
 double zFar = 1000.0f;
 
-Vector3D cameraEye(200.0f, -200.0f, 200.0f);
+Vector3D cameraEye(100.0f, -100.0f, 100.0f);
 Vector3D cameraCenter(0.0f, 0.0f, 0.0f);
 Vector3D cameraUp(0.0f, 0.0f, 1.0f);
 
@@ -26,7 +26,7 @@ bitmap_image image;
 
 void loadData()
 {
-    ifstream fin("scene.txt");
+    ifstream fin("scene_test.txt");
     if (!fin)
     {
         cout << "Error opening file\n";
