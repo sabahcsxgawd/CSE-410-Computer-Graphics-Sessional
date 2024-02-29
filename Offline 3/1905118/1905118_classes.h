@@ -278,7 +278,7 @@ public:
     {
         glPushMatrix();
         glTranslatef(this->referencePoint.x, this->referencePoint.y, this->referencePoint.z);
-        int tileCount = round(this->referencePoint.x * 2 / this->length);
+        int tileCount = round(-this->referencePoint.x * 2 / this->length);
         for (int i = 0; i < tileCount; i++)
         {
             for (int j = 0; j < tileCount; j++)

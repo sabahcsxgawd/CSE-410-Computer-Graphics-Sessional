@@ -2,7 +2,7 @@
 
 using namespace std;
 
-Vector3D cameraEye(20.0f, -20.0f, 20.0f);
+Vector3D cameraEye(200.0f, -200.0f, 200.0f);
 Vector3D cameraCenter(0.0f, 0.0f, 0.0f);
 Vector3D cameraUp(0.0f, 0.0f, 1.0f);
 
@@ -92,6 +92,8 @@ void loadData()
 
     temp = new Floor(1000, 20);
     double floorCoEfficients[] = {0.4, 0.4, 0.3, 0.2};
+    double floorShine = 5;
+    temp->setShine(floorShine);
     temp->setCoEfficients(floorCoEfficients);
     objects.push_back(temp);
 
@@ -170,6 +172,10 @@ void displayHandler()
 
     glPushMatrix();
     drawAxes();
+    for (int i = 0; i < objects.size(); i++)
+    {
+        objects[i]->draw();
+    }
     glPopMatrix();
 
     glutSwapBuffers();
@@ -183,7 +189,7 @@ void reshapeHandler(int w, int h)
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(80.0f, (GLfloat)w / (GLfloat)h, 0.01f, 100.0f);
+    gluPerspective(80.0f, (GLfloat)w / (GLfloat)h, 0.01f, 1000.0f);
     glMatrixMode(GL_MODELVIEW);
 }
 
@@ -218,7 +224,7 @@ void keyboardHandler(unsigned char key, int x, int y)
 
 void specialKeyboardHandler(int key, int x, int y)
 {
-    GLfloat cameraMovementSpeed = 0.5f;
+    GLfloat cameraMovementSpeed = 0.8f;
     switch (key)
     {
     case GLUT_KEY_UP:
