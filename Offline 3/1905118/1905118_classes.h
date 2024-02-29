@@ -469,28 +469,32 @@ public:
     double intersect(Ray &ray) override
     {
         double matA[3][3] = {
-            
-        };
+            {a.x - b.x, a.x - c.x, ray.dir.x},
+            {a.y - b.y, a.y - c.y, ray.dir.y},
+            {a.z - b.z, a.z - c.z, ray.dir.z}};
 
         double detA = this->getDeterminant(matA);
 
         assert(detA != 0.0);
 
         double matBeta[3][3] = {
-
-        };
+            {a.x - ray.start.x, a.x - c.x, ray.dir.x},
+            {a.y - ray.start.y, a.y - c.y, ray.dir.y},
+            {a.z - ray.start.z, a.z - c.z, ray.dir.z}};
 
         double beta = this->getDeterminant(matBeta) / detA;
 
         double matGamma[3][3] = {
-
-        };
+            {a.x - b.x, a.x - ray.start.x, ray.dir.x},
+            {a.y - b.y, a.y - ray.start.y, ray.dir.y},
+            {a.z - b.z, a.z - ray.start.z, ray.dir.z}};
 
         double gamma = this->getDeterminant(matGamma) / detA;
 
         double matT[3][3] = {
-
-        };
+            {a.x - b.x, a.x - c.x, a.x - ray.start.x},
+            {a.y - b.y, a.y - c.y, a.y - ray.start.y},
+            {a.z - b.z, a.z - c.z, a.z - ray.start.z}};
 
         double t = this->getDeterminant(matT) / detA;
 
