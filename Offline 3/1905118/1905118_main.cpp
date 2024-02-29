@@ -1,16 +1,126 @@
-#include <bits/stdc++.h>
-#include <GL/glut.h>
 #include "1905118_classes.h"
 
 using namespace std;
 
-Vector3D cameraEye(2.0f, -2.0f, 2.0f);
+Vector3D cameraEye(20.0f, -20.0f, 20.0f);
 Vector3D cameraCenter(0.0f, 0.0f, 0.0f);
 Vector3D cameraUp(0.0f, 0.0f, 1.0f);
 
 Vector3D f(0.0f, 0.0f, 0.0f);
 Vector3D s(0.0f, 0.0f, 0.0f);
 Vector3D u(0.0f, 0.0f, 0.0f);
+
+int recursionLevel;
+int screenWidth, screenHeight;
+
+vector<Object *> objects;
+vector<PointLight> pointLights;
+vector<SpotLight> spotLights;
+
+void loadData()
+{
+    ifstream fin("scene.txt");
+    if (!fin)
+    {
+        cout << "Error opening file\n";
+        return;
+    }
+
+    fin >> recursionLevel;
+    fin >> screenWidth;
+    screenHeight = screenWidth;
+
+    Object *temp;
+    int numObjects;
+    fin >> numObjects;
+    for (int i = 0; i < numObjects; i++)
+    {
+        string type;
+        fin >> type;
+        if (type == "sphere")
+        {
+            double x, y, z, radius;
+            double color[3], coefficients[4], shine;
+            fin >> x >> y >> z >> radius;
+            fin >> color[0] >> color[1] >> color[2];
+            fin >> coefficients[0] >> coefficients[1] >> coefficients[2] >> coefficients[3];
+            fin >> shine;
+            temp = new Sphere(Vector3D(x, y, z), radius);
+            temp->setColor(color);
+            temp->setCoEfficients(coefficients);
+            temp->setShine(shine);
+            objects.push_back(temp);
+        }
+        else if (type == "triangle")
+        {
+            double x1, y1, z1, x2, y2, z2, x3, y3, z3;
+            double color[3], coefficients[4], shine;
+            fin >> x1 >> y1 >> z1 >> x2 >> y2 >> z2 >> x3 >> y3 >> z3;
+            fin >> color[0] >> color[1] >> color[2];
+            fin >> coefficients[0] >> coefficients[1] >> coefficients[2] >> coefficients[3];
+            fin >> shine;
+            temp = new Triangle(Vector3D(x1, y1, z1), Vector3D(x2, y2, z2), Vector3D(x3, y3, z3));
+            temp->setColor(color);
+            temp->setCoEfficients(coefficients);
+            temp->setShine(shine);
+            objects.push_back(temp);
+        }
+        else if (type == "general")
+        {
+            double A, B, C, D, E, F, G, H, I, J;
+            double referencePointX, referencePointY, referencePointZ;
+            double length, width, height;
+            double color[3], coefficients[4];
+            int shine;
+            fin >> A >> B >> C >> D >> E >> F >> G >> H >> I >> J;
+            fin >> referencePointX >> referencePointY >> referencePointZ;
+            fin >> length >> width >> height;
+            fin >> color[0] >> color[1] >> color[2];
+            fin >> coefficients[0] >> coefficients[1] >> coefficients[2] >> coefficients[3];
+            fin >> shine;
+            temp = new General(A, B, C, D, E, F, G, H, I, J, Vector3D(referencePointX, referencePointY, referencePointZ), length, width, height);
+            temp->setColor(color);
+            temp->setCoEfficients(coefficients);
+            temp->setShine(shine);
+            objects.push_back(temp);
+        }
+        else
+        {
+            cout << "Unknown object type\n";
+        }
+    }
+
+    temp = new Floor(1000, 20);
+    double floorCoEfficients[] = {0.4, 0.4, 0.3, 0.2};
+    temp->setCoEfficients(floorCoEfficients);
+    objects.push_back(temp);
+
+    int numPointLights;
+    fin >> numPointLights;
+    for (int i = 0; i < numPointLights; i++)
+    {
+        double x, y, z;
+        double color[3];
+        fin >> x >> y >> z;
+        fin >> color[0] >> color[1] >> color[2];
+        PointLight pointLight(Vector3D(x, y, z), color);
+        pointLights.push_back(pointLight);
+    }
+
+    int numSpotLights;
+    fin >> numSpotLights;
+    for (int i = 0; i < numSpotLights; i++)
+    {
+        double x, y, z, dx, dy, dz, angle;
+        double color[3];
+        fin >> x >> y >> z >> dx >> dy >> dz >> angle;
+        fin >> color[0] >> color[1] >> color[2];
+        SpotLight spotLight(Vector3D(x, y, z), Vector3D(dx, dy, dz), angle, color);
+        spotLights.push_back(spotLight);
+    }
+
+    fin.close();
+}
 
 void updateCameraFSU()
 {
@@ -73,13 +183,12 @@ void reshapeHandler(int w, int h)
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    // gluPerspective(45.0f, (GLfloat)w / (GLfloat)h, 0.01f, 100.0f);
     gluPerspective(80.0f, (GLfloat)w / (GLfloat)h, 0.01f, 100.0f);
     glMatrixMode(GL_MODELVIEW);
 }
 
 void keyboardHandler(unsigned char key, int x, int y)
-{   
+{
     GLfloat cameraRotationChangeAngle = 0.8f * M_PI / 180.0f;
     switch (key)
     {
@@ -100,7 +209,7 @@ void keyboardHandler(unsigned char key, int x, int y)
         break;
     case '6':
         cameraUp = cameraUp.rotateAroundAxis(-cameraRotationChangeAngle, f).normalize();
-        break;   
+        break;
     default:
         cout << "UNKNOWN\n";
     }
@@ -136,6 +245,18 @@ void specialKeyboardHandler(int key, int x, int y)
         cameraEye = cameraEye - u * cameraMovementSpeed;
         cameraCenter = cameraCenter - u * cameraMovementSpeed;
         break;
+    case GLUT_KEY_END:
+        objects.clear();
+        objects.shrink_to_fit();
+
+        pointLights.clear();
+        pointLights.shrink_to_fit();
+
+        spotLights.clear();
+        spotLights.shrink_to_fit();
+
+        exit(0);
+        break;
     default:
         cout << "UNKNOWN\n";
     }
@@ -144,9 +265,11 @@ void specialKeyboardHandler(int key, int x, int y)
 
 int main(int argc, char **argv)
 {
+    loadData();
+
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
-    glutInitWindowSize(720, 720);
+    glutInitWindowSize(screenWidth, screenHeight);
     glutCreateWindow("1905118 Ray Tracing");
     glutDisplayFunc(displayHandler);
     glutReshapeFunc(reshapeHandler);
@@ -154,5 +277,6 @@ int main(int argc, char **argv)
     glutSpecialFunc(specialKeyboardHandler);
     initGL();
     glutMainLoop();
+
     return 0;
 }

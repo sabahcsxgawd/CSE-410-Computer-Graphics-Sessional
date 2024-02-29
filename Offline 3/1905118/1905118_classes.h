@@ -143,24 +143,6 @@ public:
     }
 };
 
-class Object
-{
-public:
-    Vector3D referencePoint;
-    int shine;
-    double height, width, length;
-    double color[3];
-    double coEfficients[4];
-
-    virtual void draw() = 0;
-    virtual void setColor() = 0;
-    virtual void setShine() = 0;
-    virtual void setCoEfficients() = 0;
-    virtual double intersect(Ray &ray, double *color, int level = 0) = 0;
-    virtual Vector3D getNormal(Vector3D &point) = 0;
-    virtual Color getColor(Vector3D &point) = 0;
-};
-
 class PointLight
 {
 public:
@@ -183,17 +165,37 @@ public:
     Vector3D direction;
     double cutOffAngle;
     double color[3];
-    SpotLight(Vector3D &position, Vector3D &direction, double cutOffAngle, double *color)
-        : position(position), direction(direction), cutOffAngle(cutOffAngle)
+    SpotLight(const Vector3D &position, const Vector3D &direction, double cutOffAngle, double *color)
     {
+        this->position = position;
+        this->direction = direction;
+        this->cutOffAngle = cutOffAngle;
         copy(color, color + 3, this->color);
     }
+};
+
+class Object
+{
+public:
+    Vector3D referencePoint;
+    int shine;
+    double height, width, length;
+    double color[3];
+    double coEfficients[4];
+
+    virtual void draw() = 0;
+    virtual void setColor(double *color) = 0;
+    virtual void setShine(int shine) = 0;
+    virtual void setCoEfficients(double *coEfficients) = 0;
+    virtual double intersect(Ray &ray, double *color, int level = 0) = 0;
+    virtual Vector3D getNormal(Vector3D &point) = 0;
+    virtual Color getColor(Vector3D &point) = 0;
 };
 
 class Sphere : public Object
 {
 public:
-    Sphere(Vector3D &center, double radius)
+    Sphere(const Vector3D &center, double radius)
     {
         this->referencePoint = center;
         this->height = radius;
@@ -201,7 +203,7 @@ public:
         this->length = radius;
     }
 
-    void draw()
+    void draw() override
     {
         glColor3f(color[0], color[1], color[2]);
         glPushMatrix();
@@ -350,9 +352,11 @@ public:
 
 class Triangle : public Object
 {
-public:
+private:
     Vector3D a, b, c;
-    Triangle(Vector3D &a, Vector3D &b, Vector3D &c)
+
+public:
+    Triangle(const Vector3D &a, const Vector3D &b, const Vector3D &c)
     {
         this->a = a;
         this->b = b;
@@ -415,6 +419,106 @@ public:
     Vector3D getNormal(Vector3D &point)
     {
         return ((b - a).cross(c - a)).normalize();
+    }
+
+    Color getColor(Vector3D &point)
+    {
+        return Color(this->color[0], this->color[1], this->color[2]);
+    }
+};
+
+class General : public Object
+{
+private:
+    double A, B, C, D, E, F, G, H, I, J;
+
+public:
+    General(double A, double B, double C, double D, double E, double F, double G, double H, double I, double J,
+            const Vector3D &referencePoint, double length, double width, double height)
+    {
+        this->A = A;
+        this->B = B;
+        this->C = C;
+        this->D = D;
+        this->E = E;
+        this->F = F;
+        this->G = G;
+        this->H = H;
+        this->I = I;
+        this->J = J;
+
+        this->referencePoint = referencePoint;
+
+        this->length = length;
+        this->width = width;
+        this->height = height;
+    }
+
+    void draw()
+    {
+        // TODO
+    }
+
+    void setColor(double *color)
+    {
+        copy(color, color + 3, this->color);
+    }
+
+    void setShine(int shine)
+    {
+        this->shine = shine;
+    }
+
+    void setCoEfficients(double *coEfficients)
+    {
+        copy(coEfficients, coEfficients + 4, this->coEfficients);
+    }
+
+    double intersect(Ray &ray, double *color, int level = 0)
+    {
+        double a = A * ray.dir.x * ray.dir.x + B * ray.dir.y * ray.dir.y + C * ray.dir.z * ray.dir.z + D * ray.dir.x * ray.dir.y + E * ray.dir.y * ray.dir.z + F * ray.dir.z * ray.dir.x;
+        double b = 2 * (A * ray.start.x * ray.dir.x + B * ray.start.y * ray.dir.y + C * ray.start.z * ray.dir.z) + D * (ray.start.x * ray.dir.y + ray.start.y * ray.dir.x) + E * (ray.start.y * ray.dir.z + ray.start.z * ray.dir.y) + F * (ray.start.z * ray.dir.x + ray.start.x * ray.dir.z) + G * ray.dir.x + H * ray.dir.y + I * ray.dir.z;
+        double c = A * ray.start.x * ray.start.x + B * ray.start.y * ray.start.y + C * ray.start.z * ray.start.z + D * ray.start.x * ray.start.y + E * ray.start.y * ray.start.z + F * ray.start.z * ray.start.x + G * ray.start.x + H * ray.start.y + I * ray.start.z + J;
+        double d = b * b - 4 * a * c;
+        if (d < 0)
+            return -1;
+        double t1 = (-b + sqrt(d)) / (2 * a);
+        double t2 = (-b - sqrt(d)) / (2 * a);
+        if (t1 < 0 && t2 < 0)
+            return -1;
+        if (t1 < 0)
+        {
+            color[0] = this->color[0];
+            color[1] = this->color[1];
+            color[2] = this->color[2];
+            return t2;
+        }
+        if (t2 < 0)
+        {
+            color[0] = this->color[0];
+            color[1] = this->color[1];
+            color[2] = this->color[2];
+            return t1;
+        }
+        if (t1 < t2)
+        {
+            color[0] = this->color[0];
+            color[1] = this->color[1];
+            color[2] = this->color[2];
+            return t1;
+        }
+        color[0] = this->color[0];
+        color[1] = this->color[1];
+        color[2] = this->color[2];
+        return t2;
+    }
+
+    Vector3D getNormal(Vector3D &point)
+    {
+        double x = 2 * A * point.x + D * point.y + F * point.z + G;
+        double y = 2 * B * point.y + D * point.x + E * point.z + H;
+        double z = 2 * C * point.z + E * point.y + F * point.x + I;
+        return Vector3D(x, y, z).normalize();
     }
 
     Color getColor(Vector3D &point)
