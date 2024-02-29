@@ -7,8 +7,8 @@ double aspect = 1.0f;
 double zNear = 0.01f;
 double zFar = 1000.0f;
 
-Vector3D cameraEye(100.0f, -100.0f, 100.0f);
-Vector3D cameraCenter(0.0f, 0.0f, 0.0f);
+Vector3D cameraEye(-10.0f, -100.0f, 100.0f);
+Vector3D cameraCenter(0.0f, 0.0f, 20.0f);
 Vector3D cameraUp(0.0f, 0.0f, 1.0f);
 
 Vector3D f(0.0f, 0.0f, 0.0f);
@@ -26,7 +26,7 @@ bitmap_image image;
 
 void loadData()
 {
-    ifstream fin("scene_test.txt");
+    ifstream fin("scene.txt");
     if (!fin)
     {
         cout << "Error opening file\n";
@@ -100,7 +100,7 @@ void loadData()
     }
 
     temp = new Floor(1000, 20);
-    double floorCoEfficients[] = {0.4, 0.4, 0.3, 0.2};
+    double floorCoEfficients[] = {0.4, 0.2, 0.2, 0.2};
     double floorShine = 5;
     temp->setShine(floorShine);
     temp->setCoEfficients(floorCoEfficients);

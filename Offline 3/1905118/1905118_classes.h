@@ -405,7 +405,11 @@ public:
         }
         else
         {
-            t = (-b + EPSILON) / 2;
+            t = -b / 2;
+            if (t < 0)
+            {
+                t = -1;
+            }
         }
         return t;
     }
@@ -542,16 +546,137 @@ public:
         // TODO
     }
 
-    Vector3D getNormal(const Ray &incidentRay, const Vector3D &point) override
+    Vector3D getNormal(const Ray &incidentRay, const Vector3D &point)
     {
-        double x = 2 * A * point.x + D * point.y + E * point.z + G;
-        double y = 2 * B * point.y + D * point.x + F * point.z + H;
-        double z = 2 * C * point.z + E * point.x + F * point.y + I;
-        return Vector3D(x, y, z).normalize();
+        double x = point.x;
+        double y = point.y;
+        double z = point.z;
+
+        double nx = 2 * A * x + D * y + E * z + G;
+        double ny = 2 * B * y + D * x + F * z + H;
+        double nz = 2 * C * z + E * x + F * y + I;
+
+        return Vector3D(nx, ny, nz).normalize();
+    }
+
+    bool isInsideBox(const Vector3D &point)
+    {
+        if (this->length > 0)
+        {
+            if (point.x < this->referencePoint.x || point.x > this->referencePoint.x + this->length)
+            {
+                return false;
+            }
+        }
+        if (this->width > 0)
+        {
+            if (point.y < this->referencePoint.y || point.y > this->referencePoint.y + this->width)
+            {
+                return false;
+            }
+        }
+        if (this->height > 0)
+        {
+            if (point.z < this->referencePoint.z || point.z > this->referencePoint.z + this->height)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     double intersect(Ray &ray) override
     {
+        double x0 = ray.start.x;
+        double y0 = ray.start.y;
+        double z0 = ray.start.z;
+
+        double xd = ray.dir.x;
+        double yd = ray.dir.y;
+        double zd = ray.dir.z;
+
+        double a = A * xd * xd + B * yd * yd + C * zd * zd + D * xd * yd + E * xd * zd + F * yd * zd;
+        double b = 2 * (A * x0 * xd + B * y0 * yd + C * z0 * zd) + D * (x0 * yd + y0 * xd) + E * (x0 * zd + z0 * xd) + F * (y0 * zd + z0 * yd) + G * xd + H * yd + I * zd;
+        double c = A * x0 * x0 + B * y0 * y0 + C * z0 * z0 + D * x0 * y0 + E * x0 * z0 + F * y0 * z0 + G * x0 + H * y0 + I * z0 + J;
+
+        double D = b * b - 4 * a * c;
+
+        Vector3D intersectionPoint;
+
+        if (D < 0)
+        {
+            return -1;
+        }
+        if (fabs(a) < EPSILON)
+        {
+            double t = -c / b;
+            if (t > 0)
+            {
+                intersectionPoint = ray.start + ray.dir * t;
+                if (this->isInsideBox(intersectionPoint))
+                {
+                    return t;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+            return -1;
+        }
+        else if (D > 0)
+        {
+            double t1 = (-b - sqrt(D)) / (2 * a);
+            double t2 = (-b + sqrt(D)) / (2 * a);
+            if (t1 > 0)
+            {
+                intersectionPoint = ray.start + ray.dir * t1;
+                if (this->isInsideBox(intersectionPoint))
+                {
+                    return t1;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+            else if (t2 > 0)
+            {
+                intersectionPoint = ray.start + ray.dir * t2;
+                if (this->isInsideBox(intersectionPoint))
+                {
+                    return t2;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+            else
+            {
+                return -1;
+            }
+        }
+        else
+        {
+            double t = -b / (2 * a);
+            if (t > 0)
+            {
+                intersectionPoint = ray.start + ray.dir * t;
+                if (this->isInsideBox(intersectionPoint))
+                {
+                    return t;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+            else
+            {
+                return -1;
+            }
+        }
     }
 };
 
