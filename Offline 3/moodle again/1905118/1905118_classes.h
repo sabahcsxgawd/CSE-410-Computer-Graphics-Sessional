@@ -272,10 +272,11 @@ public:
                 // Xm = pow(cosBeta, 0.01); // TODO test with different power
 
                 double X = cos(spotLight.cutOffAngle * M_PI / 180.0);
-                X = 1.0 / (1.0 - X);
+                assert(X > 0);
+                double d = 1.0 / (1.0 - X);
                 if (X <= cosBeta && cosBeta <= 1.0)
                 {
-                    Xm = 1.0 - (1.0 - cosBeta) * X;
+                    Xm = 1.0 - (1.0 - cosBeta) * d;
                 }
             }
             Ray L(originL, directionL);
