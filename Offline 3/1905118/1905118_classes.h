@@ -339,6 +339,9 @@ public:
     virtual double intersect(Ray &ray) = 0;
     virtual void draw() = 0;
     virtual Vector3D getNormal(const Ray &incidentRay, const Vector3D &point) = 0;
+
+    // add proper destructor
+    virtual ~Object() {}
 };
 
 class Sphere : public Object

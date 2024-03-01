@@ -298,6 +298,10 @@ void keyboardHandler(unsigned char key, int x, int y)
         cameraUp = cameraUp.rotateAroundAxis(-cameraRotationChangeAngle, f).normalize();
         break;
     case 27:
+        for (Object *object : objects)
+        {
+            delete object;
+        }
         objects.clear();
         objects.shrink_to_fit();
 
