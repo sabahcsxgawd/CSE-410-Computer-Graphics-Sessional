@@ -7,8 +7,8 @@ double aspect = 1.0f;
 double zNear = 0.01f;
 double zFar = 1000.0f;
 
-Vector3D cameraEye(-10.0f, -100.0f, 100.0f);
-Vector3D cameraCenter(0.0f, 0.0f, 20.0f);
+Vector3D cameraEye(0.0f, -100.0f, 80.0f);
+Vector3D cameraCenter(0.0f, 0.0f, 70.0f);
 Vector3D cameraUp(0.0f, 0.0f, 1.0f);
 
 Vector3D f(0.0f, 0.0f, 0.0f);
@@ -16,7 +16,9 @@ Vector3D s(0.0f, 0.0f, 0.0f);
 Vector3D u(0.0f, 0.0f, 0.0f);
 
 int recursionLevel, imageCount;
-int screenWidth, screenHeight, imageWidth, imageHeight;
+double screenWidth, screenHeight;
+double imageWidth = 1400;
+double imageHeight = 1400;
 
 vector<Object *> objects;
 vector<PointLight> pointLights;
@@ -36,8 +38,8 @@ void loadData()
     fin >> recursionLevel;
     fin >> screenWidth;
     screenHeight = screenWidth;
-    imageWidth = screenWidth;
-    imageHeight = screenHeight;
+    // imageWidth = screenWidth;
+    // imageHeight = screenHeight;
 
     Object *temp;
     int numObjects;
@@ -124,8 +126,9 @@ void loadData()
     {
         double x, y, z, dx, dy, dz, angle;
         double color[3];
-        fin >> x >> y >> z >> dx >> dy >> dz >> angle;
+        fin >> x >> y >> z;
         fin >> color[0] >> color[1] >> color[2];
+        fin >> dx >> dy >> dz >> angle;
         SpotLight spotLight(Vector3D(x, y, z), Vector3D(dx, dy, dz), angle, color);
         spotLights.push_back(spotLight);
     }
@@ -135,6 +138,7 @@ void loadData()
 
 void capture()
 {
+    cout << "Starting Image\n";
     imageCount++;
     image.setwidth_height(imageWidth, imageHeight, true);
 
@@ -176,6 +180,10 @@ void capture()
                 color[1] = max(0.0, min(1.0, color[1]));
                 color[2] = max(0.0, min(1.0, color[2]));
 
+                assert(color[0] >= 0 && color[0] <= 1);
+                assert(color[1] >= 0 && color[1] <= 1);
+                assert(color[2] >= 0 && color[2] <= 1);
+
                 image.set_pixel(i, j, color[0] * 255, color[1] * 255, color[2] * 255);
 
                 delete[] color;
@@ -185,6 +193,7 @@ void capture()
 
     string imageName = "Output1" + to_string(imageCount) + ".bmp";
     image.save_image(imageName);
+    cout << "Saving Image\n";
 }
 
 void updateCameraFSU()
@@ -288,6 +297,18 @@ void keyboardHandler(unsigned char key, int x, int y)
     case '6':
         cameraUp = cameraUp.rotateAroundAxis(-cameraRotationChangeAngle, f).normalize();
         break;
+    case 27:
+        objects.clear();
+        objects.shrink_to_fit();
+
+        pointLights.clear();
+        pointLights.shrink_to_fit();
+
+        spotLights.clear();
+        spotLights.shrink_to_fit();
+
+        exit(0);
+        break;
     default:
         cout << "UNKNOWN\n";
     }
@@ -322,18 +343,6 @@ void specialKeyboardHandler(int key, int x, int y)
     case GLUT_KEY_PAGE_DOWN:
         cameraEye = cameraEye - u * cameraMovementSpeed;
         cameraCenter = cameraCenter - u * cameraMovementSpeed;
-        break;
-    case GLUT_KEY_END:
-        objects.clear();
-        objects.shrink_to_fit();
-
-        pointLights.clear();
-        pointLights.shrink_to_fit();
-
-        spotLights.clear();
-        spotLights.shrink_to_fit();
-
-        exit(0);
         break;
     default:
         cout << "UNKNOWN\n";

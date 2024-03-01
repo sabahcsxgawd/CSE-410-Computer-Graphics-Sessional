@@ -73,7 +73,7 @@ public:
 
     Vector3D operator/(double s)
     {
-        assert(s != 0.0);
+        assert(fabs(s) > EPSILON);
         return Vector3D(x / s, y / s, z / s);
     }
 
@@ -87,7 +87,7 @@ public:
         return Vector3D(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
     }
 
-    double length() const
+    double length()
     {
         return sqrt(x * x + y * y + z * z);
     }
@@ -95,7 +95,7 @@ public:
     Vector3D &normalize()
     {
         double l = length();
-        assert(l != 0.0);
+        assert(fabs(l) > EPSILON);
         x /= l;
         y /= l;
         z /= l;
@@ -137,11 +137,9 @@ public:
     Vector3D position;
     double color[3];
 
-    // Use const reference for Vector3D
     PointLight(const Vector3D &position, const double *color)
-        : position(position)
     {
-        // Copy color array using std::copy for better safety
+        this->position = position;
         copy(color, color + 3, this->color);
     }
 };
@@ -157,6 +155,7 @@ public:
     {
         this->position = position;
         this->direction = direction;
+        this->direction.normalize();
         this->cutOffAngle = cutOffAngle;
         copy(color, color + 3, this->color);
     }
@@ -208,15 +207,13 @@ public:
     virtual double intersect(Ray &ray, double *color, int level)
     {
         double tMin = this->intersect(ray);
-        cout << "tMin: " << tMin << '\n';
-        if (level == 0 || tMin < 0.0)
+        if (level == 0)
         {
             return tMin;
         }
 
         Vector3D intersectionPoint = ray.start + ray.dir * tMin;
         double *intersectionPointColor = this->getColor(intersectionPoint);
-        cout << "Intersection Point Color: " << intersectionPointColor[0] << " " << intersectionPointColor[1] << " " << intersectionPointColor[2] << '\n';
 
         color[0] = intersectionPointColor[0] * this->coEfficients[0];
         color[1] = intersectionPointColor[1] * this->coEfficients[0];
@@ -228,10 +225,17 @@ public:
             Vector3D directionL = (intersectionPoint - originL).normalize();
             Ray L(originL, directionL);
             bool isObscured = false;
+            double len = (intersectionPoint - originL).length();
+
+            if (len < EPSILON)
+            {
+                continue;
+            }
+
             for (Object *object : objects)
             {
                 double t = object->intersect(L);
-                if (t >= 0 && t <= 1.0)
+                if (t > EPSILON && (t - len) < -EPSILON)
                 {
                     isObscured = true;
                     break;
@@ -240,7 +244,7 @@ public:
             if (!isObscured)
             {
                 Vector3D normal = this->getNormal(L, intersectionPoint);
-                Vector3D directionV = (ray.start - intersectionPoint).normalize();
+                Vector3D directionV = (intersectionPoint - ray.start).normalize();
                 Ray reflectedRay = this->getReflectedRay(L, intersectionPoint);
                 double lambertValue = max(0.0, normal.dot(directionL) * -1.0);
                 double phongValue = pow(max(0.0, reflectedRay.dir.dot(directionV) * -1.0), this->shine);
@@ -257,23 +261,29 @@ public:
             Vector3D directionL = (intersectionPoint - originL).normalize();
             double cosBeta = directionL.dot(spotLight.direction);
             double beta = acos(cosBeta) * 180.0 / M_PI;
-            if (beta > spotLight.cutOffAngle)
+            double Xm = 0;
+            double len = (intersectionPoint - originL).length();
+            if (beta > spotLight.cutOffAngle || len < EPSILON)
             {
                 continue;
             }
             else
             {
-                cosBeta = pow(cosBeta, 20); // TODO test with different power
-                spotLight.color[0] *= cosBeta;
-                spotLight.color[1] *= cosBeta;
-                spotLight.color[2] *= cosBeta;
+                // Xm = pow(cosBeta, 0.01); // TODO test with different power
+
+                double X = cos(spotLight.cutOffAngle * M_PI / 180.0);
+                X = 1.0 / (1.0 - X);
+                if (X <= cosBeta && cosBeta <= 1.0)
+                {
+                    Xm = 1.0 - (1.0 - cosBeta) * X;
+                }
             }
             Ray L(originL, directionL);
             bool isObscured = false;
             for (Object *object : objects)
             {
                 double t = object->intersect(L);
-                if (t >= 0 && t <= 1.0)
+                if (t > 0 && (t - len) < -EPSILON)
                 {
                     isObscured = true;
                     break;
@@ -282,14 +292,14 @@ public:
             if (!isObscured)
             {
                 Vector3D normal = this->getNormal(L, intersectionPoint);
-                Vector3D directionV = (ray.start - intersectionPoint).normalize();
+                Vector3D directionV = (intersectionPoint - ray.start).normalize();
                 Ray reflectedRay = this->getReflectedRay(L, intersectionPoint);
                 double lambertValue = max(0.0, normal.dot(directionL) * -1.0);
                 double phongValue = pow(max(0.0, reflectedRay.dir.dot(directionV) * -1.0), this->shine);
 
-                color[0] += (spotLight.color[0] * lambertValue * this->coEfficients[1]) + (spotLight.color[0] * phongValue * this->coEfficients[2]);
-                color[1] += (spotLight.color[1] * lambertValue * this->coEfficients[1]) + (spotLight.color[1] * phongValue * this->coEfficients[2]);
-                color[2] += (spotLight.color[2] * lambertValue * this->coEfficients[1]) + (spotLight.color[2] * phongValue * this->coEfficients[2]);
+                color[0] += (spotLight.color[0] * Xm * lambertValue * this->coEfficients[1]) + (spotLight.color[0] * Xm * phongValue * this->coEfficients[2]);
+                color[1] += (spotLight.color[1] * Xm * lambertValue * this->coEfficients[1]) + (spotLight.color[1] * Xm * phongValue * this->coEfficients[2]);
+                color[2] += (spotLight.color[2] * Xm * lambertValue * this->coEfficients[1]) + (spotLight.color[2] * Xm * phongValue * this->coEfficients[2]);
             }
         }
 
@@ -306,14 +316,14 @@ public:
         for (Object *object : objects)
         {
             double t = object->intersect(reflectedRay);
-            if (t >= 0 && t < tMin)
+            if (t > 0 && t < tMin)
             {
                 tMin = t;
                 nearestObject = object;
             }
         }
 
-        if (nearestObject != nullptr)
+        if (nearestObject != nullptr && nearestObject != this)
         {
             double *colorReflected = new double[3];
             tMin = nearestObject->intersect(reflectedRay, colorReflected, level + 1);
@@ -380,37 +390,44 @@ public:
 
         double t;
 
-        if (D < 0)
+        if (D < 0.0)
         {
             t = -1;
         }
-        else if (D > 0)
+
+        else if (D > 0.0)
         {
             double t1, t2;
             D = sqrt(D);
             t1 = (-b - D) / 2;
             t2 = (-b + D) / 2;
+
             if (t1 > 0)
             {
                 t = t1;
             }
+
             else if (t2 > 0)
             {
                 t = t2;
             }
+
             else
             {
                 t = -1;
             }
         }
+
         else
         {
             t = -b / 2;
+
             if (t < 0)
             {
                 t = -1;
             }
         }
+
         return t;
     }
 };
@@ -543,7 +560,6 @@ public:
 
     void draw()
     {
-        // TODO
     }
 
     Vector3D getNormal(const Ray &incidentRay, const Vector3D &point)
@@ -561,21 +577,21 @@ public:
 
     bool isInsideBox(const Vector3D &point)
     {
-        if (this->length > 0)
+        if (this->length > EPSILON)
         {
             if (point.x < this->referencePoint.x || point.x > this->referencePoint.x + this->length)
             {
                 return false;
             }
         }
-        if (this->width > 0)
+        if (this->width > EPSILON)
         {
             if (point.y < this->referencePoint.y || point.y > this->referencePoint.y + this->width)
             {
                 return false;
             }
         }
-        if (this->height > 0)
+        if (this->height > EPSILON)
         {
             if (point.z < this->referencePoint.z || point.z > this->referencePoint.z + this->height)
             {
@@ -603,10 +619,6 @@ public:
 
         Vector3D intersectionPoint;
 
-        if (D < 0)
-        {
-            return -1;
-        }
         if (fabs(a) < EPSILON)
         {
             double t = -c / b;
@@ -617,17 +629,25 @@ public:
                 {
                     return t;
                 }
-                else
-                {
-                    return -1;
-                }
             }
+        }
+
+        if (D < 0)
+        {
             return -1;
         }
-        else if (D > 0)
+
+        else if (D > 0.0)
         {
-            double t1 = (-b - sqrt(D)) / (2 * a);
-            double t2 = (-b + sqrt(D)) / (2 * a);
+            D = sqrt(D);
+            double t1 = (-b - D) / (2 * a);
+            double t2 = (-b + D) / (2 * a);
+
+            if (t1 > t2)
+            {
+                swap(t1, t2);
+            }
+
             if (t1 > 0)
             {
                 intersectionPoint = ray.start + ray.dir * t1;
@@ -635,28 +655,19 @@ public:
                 {
                     return t1;
                 }
-                else
-                {
-                    return -1;
-                }
             }
-            else if (t2 > 0)
+
+            if (t2 > 0)
             {
                 intersectionPoint = ray.start + ray.dir * t2;
                 if (this->isInsideBox(intersectionPoint))
                 {
                     return t2;
                 }
-                else
-                {
-                    return -1;
-                }
             }
-            else
-            {
-                return -1;
-            }
+            return -1;
         }
+
         else
         {
             double t = -b / (2 * a);
@@ -667,15 +678,8 @@ public:
                 {
                     return t;
                 }
-                else
-                {
-                    return -1;
-                }
             }
-            else
-            {
-                return -1;
-            }
+            return -1;
         }
     }
 };
@@ -759,7 +763,7 @@ public:
     {
         assert(ray.dir.length() != 0);
 
-        if (abs(ray.dir.z) < EPSILON)
+        if (fabs(ray.dir.z) < EPSILON)
         {
             // The ray is parallel to the floor, no intersection
             return -1;
