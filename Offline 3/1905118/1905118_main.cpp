@@ -249,7 +249,7 @@ void displayHandler()
               cameraUp.x, cameraUp.y, cameraUp.z);
 
     glPushMatrix();
-    drawAxes();
+    // drawAxes();
     for (int i = 0; i < objects.size(); i++)
     {
         objects[i]->draw();
