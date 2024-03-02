@@ -127,7 +127,7 @@ public:
     {
         this->start = start;
         this->dir = dir;
-        this->dir.normalize();
+        this->dir.normalize();        
     }
 };
 
@@ -324,7 +324,7 @@ public:
             }
         }
 
-        if (nearestObject != nullptr && nearestObject != this)
+        if (nearestObject != nullptr)
         {
             double *colorReflected = new double[3];
             tMin = nearestObject->intersect(reflectedRay, colorReflected, level + 1);
