@@ -127,7 +127,7 @@ public:
     {
         this->start = start;
         this->dir = dir;
-        this->dir.normalize();        
+        this->dir.normalize();
     }
 };
 
@@ -249,9 +249,9 @@ public:
                 double lambertValue = max(0.0, normal.dot(directionL) * -1.0);
                 double phongValue = pow(max(0.0, reflectedRay.dir.dot(directionV) * -1.0), this->shine);
 
-                color[0] += (pointLight.color[0] * lambertValue * this->coEfficients[1]) + (pointLight.color[0] * phongValue * this->coEfficients[2]);
-                color[1] += (pointLight.color[1] * lambertValue * this->coEfficients[1]) + (pointLight.color[1] * phongValue * this->coEfficients[2]);
-                color[2] += (pointLight.color[2] * lambertValue * this->coEfficients[1]) + (pointLight.color[2] * phongValue * this->coEfficients[2]);
+                color[0] += (pointLight.color[0] * lambertValue * this->coEfficients[1] * intersectionPointColor[0]) + (pointLight.color[0] * phongValue * this->coEfficients[2] * intersectionPointColor[0]);
+                color[1] += (pointLight.color[1] * lambertValue * this->coEfficients[1] * intersectionPointColor[1]) + (pointLight.color[1] * phongValue * this->coEfficients[2] * intersectionPointColor[1]);
+                color[2] += (pointLight.color[2] * lambertValue * this->coEfficients[1] * intersectionPointColor[2]) + (pointLight.color[2] * phongValue * this->coEfficients[2] * intersectionPointColor[2]);
             }
         }
 
@@ -298,9 +298,9 @@ public:
                 double lambertValue = max(0.0, normal.dot(directionL) * -1.0);
                 double phongValue = pow(max(0.0, reflectedRay.dir.dot(directionV) * -1.0), this->shine);
 
-                color[0] += (spotLight.color[0] * Xm * lambertValue * this->coEfficients[1]) + (spotLight.color[0] * Xm * phongValue * this->coEfficients[2]);
-                color[1] += (spotLight.color[1] * Xm * lambertValue * this->coEfficients[1]) + (spotLight.color[1] * Xm * phongValue * this->coEfficients[2]);
-                color[2] += (spotLight.color[2] * Xm * lambertValue * this->coEfficients[1]) + (spotLight.color[2] * Xm * phongValue * this->coEfficients[2]);
+                color[0] += (spotLight.color[0] * Xm * lambertValue * this->coEfficients[1] * intersectionPointColor[0]) + (spotLight.color[0] * Xm * phongValue * this->coEfficients[2] * intersectionPointColor[0]);
+                color[1] += (spotLight.color[1] * Xm * lambertValue * this->coEfficients[1] * intersectionPointColor[1]) + (spotLight.color[1] * Xm * phongValue * this->coEfficients[2] * intersectionPointColor[1]);
+                color[2] += (spotLight.color[2] * Xm * lambertValue * this->coEfficients[1] * intersectionPointColor[2]) + (spotLight.color[2] * Xm * phongValue * this->coEfficients[2] * intersectionPointColor[2]);
             }
         }
 
